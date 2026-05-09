@@ -46,7 +46,11 @@ async function waitFor(url, timeoutMs = 60_000) {
 }
 
 function assetUrl(path) {
-  return new URL(path, `${baseUrl}/`).toString();
+  if (path === "/") {
+    return `${baseUrl}/`;
+  }
+
+  return new URL(path.replace(/^\//, ""), `${baseUrl}/`).toString();
 }
 
 async function fetchText(path) {

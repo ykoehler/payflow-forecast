@@ -54,7 +54,7 @@ http://127.0.0.1:8080
 Pushes to `main` deploy the static Trunk build to GitHub Pages:
 
 ```text
-https://ykoehler.github.io/payflore-forecast/
+https://ykoehler.github.io/payflow-forecast/
 ```
 
 ## Verify

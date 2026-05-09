@@ -36,7 +36,7 @@ jobs:
         run: cargo test
 
       - name: Build
-        run: trunk build --public-url /payflore-forecast/
+        run: trunk build --public-url /payflow-forecast/
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

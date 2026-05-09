@@ -118,7 +118,7 @@ async function seedPlannerState(page: Page, state: PlannerState) {
 }
 
 async function openApp(page: Page) {
-  await page.goto("/");
+  await page.goto("./");
   await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
 }
 
