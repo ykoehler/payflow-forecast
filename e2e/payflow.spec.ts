@@ -319,6 +319,9 @@ test("imports YNAB data and turns recurring activity into bills, paycheck transf
   await page.getByRole("button", { name: "Load Accounts" }).click();
 
   await expect(page.getByText("Loaded 1 budgets and 2 accounts")).toBeVisible();
+  await expect(page.getByText("Token saved")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Forget token" })).toBeVisible();
+  await expect(page.getByLabel("Personal access token")).toHaveCount(0);
   await expect(page.getByLabel("Budget")).toHaveValue("budget-1");
   await expect(page.getByLabel("Account")).toHaveValue("acc-1");
 

@@ -1199,6 +1199,27 @@ dialog label {
   gap: 10px;
 }
 
+.token-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfc;
+}
+
+.token-status div {
+  display: grid;
+  gap: 3px;
+}
+
+.token-status span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .settings-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1401,6 +1422,11 @@ dialog menu {
   .compact-metrics,
   .ynab-actions {
     grid-template-columns: 1fr;
+  }
+
+  .token-status {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .tutorial-backdrop {

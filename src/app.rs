@@ -910,6 +910,8 @@ fn SettingsView(
     show_tutorial: RwSignal<bool>,
     tutorial_step: RwSignal<TutorialStep>,
 ) -> impl IntoView {
+    let is_editing_token = RwSignal::new(false);
+
     view! {
         <section class="view active">
             <div class="settings-grid">
@@ -985,22 +987,50 @@ fn SettingsView(
                 <section class="form-panel ynab-panel">
                     <h3>"YNAB import"</h3>
                     <p>"Use a personal access token to import the dedicated recurring-payment account."</p>
-                    <label>
-                        "Personal access token"
-                        <input
-                            type="password"
-                            placeholder=move || {
-                                if state.get().ynab.access_token.is_empty() {
-                                    "Paste YNAB token".to_string()
-                                } else {
-                                    "Token saved locally".to_string()
-                                }
-                            }
-                            on:input=move |event| {
-                                state.update(|state| state.ynab.access_token = event_target_value(&event));
-                            }
-                        />
-                    </label>
+                    {move || {
+                        if state.get().ynab.access_token.is_empty() || is_editing_token.get() {
+                            view! {
+                                <label>
+                                    "Personal access token"
+                                    <input
+                                        type="password"
+                                        placeholder="Paste YNAB token"
+                                        prop:value=move || state.get().ynab.access_token
+                                        on:focus=move |_| is_editing_token.set(true)
+                                        on:input=move |event| {
+                                            state.update(|state| state.ynab.access_token = event_target_value(&event));
+                                        }
+                                        on:blur=move |_| is_editing_token.set(false)
+                                    />
+                                </label>
+                            }.into_any()
+                        } else {
+                            view! {
+                                <div class="token-status">
+                                    <div>
+                                        <strong>"Token saved"</strong>
+                                        <span>"Stored locally in this browser."</span>
+                                    </div>
+                                    <button
+                                        class="secondary-button"
+                                        type="button"
+                                        on:click=move |_| {
+                                            state.update(|state| {
+                                                state.ynab.access_token.clear();
+                                                state.ynab.plan_id = None;
+                                                state.ynab.account_id = None;
+                                                state.ynab.available_plans.clear();
+                                                state.ynab.available_accounts.clear();
+                                                state.ynab.last_import_status = "Token removed".to_string();
+                                            });
+                                        }
+                                    >
+                                        "Forget token"
+                                    </button>
+                                </div>
+                            }.into_any()
+                        }
+                    }}
                     <label>
                         "Budget"
                         <select
@@ -1059,22 +1089,6 @@ fn SettingsView(
                             on:click=move |_| run_ynab_import(state, is_importing)
                         >
                             {move || if is_importing.get() { "Importing..." } else { "Import from YNAB" }}
-                        </button>
-                        <button
-                            class="secondary-button"
-                            type="button"
-                            on:click=move |_| {
-                                state.update(|state| {
-                                    state.ynab.access_token.clear();
-                                    state.ynab.plan_id = None;
-                                    state.ynab.account_id = None;
-                                    state.ynab.available_plans.clear();
-                                    state.ynab.available_accounts.clear();
-                                    state.ynab.last_import_status = "Token removed".to_string();
-                                });
-                            }
-                        >
-                            "Forget token"
                         </button>
                     </div>
                     <div class="import-status">
