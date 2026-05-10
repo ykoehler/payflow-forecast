@@ -27,6 +27,9 @@ type PlannerState = {
   };
   transactions: TrackedTransaction[];
   recurring_candidates: unknown[];
+  onboarding: {
+    introduction_done: boolean;
+  };
 };
 
 type Bill = {
@@ -106,6 +109,9 @@ function plannerState(overrides: Partial<PlannerState> = {}): PlannerState {
     },
     transactions: [],
     recurring_candidates: [],
+    onboarding: {
+      introduction_done: true,
+    },
     ...overrides,
   };
 }
@@ -117,9 +123,16 @@ async function seedPlannerState(page: Page, state: PlannerState) {
   );
 }
 
-async function openApp(page: Page) {
+async function openApp(page: Page, options: { dismissTutorial?: boolean } = {}) {
+  const { dismissTutorial = true } = options;
   await page.goto("./");
   await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+  if (dismissTutorial) {
+    const skipButton = page.getByRole("button", { name: "Skip introduction" });
+    if (await skipButton.isVisible()) {
+      await skipButton.click();
+    }
+  }
 }
 
 async function mockYnabApi(page: Page) {
@@ -261,6 +274,41 @@ async function expectNoButtonTextOverflow(page: Page) {
 
   expect(offenders).toEqual([]);
 }
+
+test("introduces new users and lets them skip the tutorial permanently", async ({ page }) => {
+  await openApp(page, { dismissTutorial: false });
+
+  const tutorial = page.getByRole("dialog");
+  await expect(tutorial).toContainText("Welcome to Payflow Forecast");
+  await expect(tutorial).toContainText("Step 1 of 8");
+
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(tutorial).toContainText("Dashboard");
+  await expect(tutorial).toContainText("Lowest projected balance");
+
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.locator(".topbar h2")).toHaveText("Bills");
+  await expect(tutorial).toContainText("Review the detected list after import");
+
+  await page.getByRole("button", { name: "Skip introduction" }).click();
+  await expect(tutorial).toHaveCount(0);
+
+  const saved = await page.evaluate((key) => JSON.parse(window.localStorage.getItem(key) || "{}"), STORAGE_KEY);
+  expect(saved.onboarding.introduction_done).toBe(true);
+
+  await page.reload();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("can reopen the tutorial from Settings", async ({ page }) => {
+  await seedPlannerState(page, plannerState());
+  await openApp(page);
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("button", { name: "Show tutorial" }).click();
+
+  await expect(page.getByRole("dialog")).toContainText("Welcome to Payflow Forecast");
+});
 
 test("imports YNAB data and turns recurring activity into bills, paycheck transfers, and unassigned transactions", async ({ page }) => {
   await mockYnabApi(page);

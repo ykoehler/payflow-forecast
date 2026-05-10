@@ -1205,6 +1205,71 @@ dialog label {
   gap: 10px;
 }
 
+.tutorial-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: end center;
+  padding: 24px;
+  background: rgba(10, 18, 20, 0.42);
+}
+
+.tutorial-card {
+  width: min(620px, 100%);
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 28px 90px rgba(10, 18, 20, 0.24);
+}
+
+.tutorial-card h3 {
+  font-size: 24px;
+}
+
+.tutorial-card p {
+  color: #3f4a53;
+}
+
+.tutorial-progress,
+.tutorial-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tutorial-progress span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.tutorial-callout {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid #c9dedb;
+  border-radius: 8px;
+  background: #eef8f7;
+}
+
+.tutorial-callout span {
+  color: #425059;
+}
+
+.text-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--teal);
+  font-weight: 800;
+}
+
 .import-status {
   display: grid;
   gap: 3px;
@@ -1336,6 +1401,17 @@ dialog menu {
   .compact-metrics,
   .ynab-actions {
     grid-template-columns: 1fr;
+  }
+
+  .tutorial-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .tutorial-progress,
+  .tutorial-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .view-controls,

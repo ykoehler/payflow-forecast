@@ -75,6 +75,14 @@ pub struct PlannerState {
     pub transactions: Vec<TrackedTransaction>,
     #[serde(default)]
     pub recurring_candidates: Vec<RecurringCandidate>,
+    #[serde(default)]
+    pub onboarding: OnboardingState,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub struct OnboardingState {
+    #[serde(default)]
+    pub introduction_done: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -188,6 +196,7 @@ impl Default for PlannerState {
             ynab: YnabSettings::default(),
             transactions: Vec::new(),
             recurring_candidates: Vec::new(),
+            onboarding: OnboardingState::default(),
         }
     }
 }
@@ -301,6 +310,7 @@ impl PlannerState {
             ynab: YnabSettings::default(),
             transactions: Vec::new(),
             recurring_candidates: Vec::new(),
+            onboarding: OnboardingState::default(),
         }
     }
 }

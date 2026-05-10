@@ -30,9 +30,19 @@ pub fn App() -> impl IntoView {
     let active_view = RwSignal::new(ViewName::Dashboard);
     let is_importing = RwSignal::new(false);
     let sidebar_collapsed = RwSignal::new(false);
+    let show_tutorial = RwSignal::new(!state.get().onboarding.introduction_done);
+    let tutorial_step = RwSignal::new(TutorialStep::Welcome);
 
     Effect::new(move |_| {
         persist_planner_state(&state.get());
+    });
+
+    Effect::new(move |_| {
+        if show_tutorial.get() {
+            if let Some(view) = tutorial_step.get().view() {
+                active_view.set(view);
+            }
+        }
     });
 
     let transfer = Memo::new(move |_| optimize_transfer(&state.get(), start));
@@ -102,9 +112,10 @@ pub fn App() -> impl IntoView {
                     ViewName::Bills => view! { <BillsView state /> }.into_any(),
                     ViewName::Transactions => view! { <TransactionsView state /> }.into_any(),
                     ViewName::Trends => view! { <TrendsView state /> }.into_any(),
-                    ViewName::Settings => view! { <SettingsView state is_importing /> }.into_any(),
+                    ViewName::Settings => view! { <SettingsView state is_importing show_tutorial tutorial_step /> }.into_any(),
                 }}
             </section>
+            <TutorialOverlay state show_tutorial tutorial_step />
         </main>
     }
 }
@@ -128,6 +139,67 @@ fn TabButton(view: ViewName, active_view: RwSignal<ViewName>) -> impl IntoView {
             <span class="tab-icon" aria-hidden="true">{view.icon()}</span>
             <span class="tab-label">{view.label()}</span>
         </button>
+    }
+}
+
+#[component]
+fn TutorialOverlay(
+    state: RwSignal<PlannerState>,
+    show_tutorial: RwSignal<bool>,
+    tutorial_step: RwSignal<TutorialStep>,
+) -> impl IntoView {
+    let skip = move |_| {
+        complete_tutorial(state);
+        show_tutorial.set(false);
+    };
+
+    let next = move |_| {
+        let step = tutorial_step.get();
+        if step.is_last() {
+            complete_tutorial(state);
+            show_tutorial.set(false);
+        } else {
+            tutorial_step.set(step.next());
+        }
+    };
+
+    view! {
+        {move || {
+            if show_tutorial.get() {
+                let step = tutorial_step.get();
+                view! {
+                    <section class="tutorial-backdrop" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+                        <article class="tutorial-card">
+                            <div class="tutorial-progress">
+                                <span>{format!("Step {} of {}", step.index() + 1, TutorialStep::COUNT)}</span>
+                                <button class="text-button" type="button" on:click=skip>"Skip introduction"</button>
+                            </div>
+                            <h3 id="tutorial-title">{step.title()}</h3>
+                            <p>{step.body()}</p>
+                            <div class="tutorial-callout">
+                                <strong>{step.callout_title()}</strong>
+                                <span>{step.callout_body()}</span>
+                            </div>
+                            <div class="tutorial-actions">
+                                <button
+                                    class="secondary-button"
+                                    type="button"
+                                    disabled=move || tutorial_step.get() == TutorialStep::Welcome
+                                    on:click=move |_| tutorial_step.update(|step| *step = step.previous())
+                                >
+                                    "Back"
+                                </button>
+                                <button class="primary-button" type="button" on:click=next>
+                                    {move || if tutorial_step.get().is_last() { "Finish" } else { "Next" }}
+                                </button>
+                            </div>
+                        </article>
+                    </section>
+                }.into_any()
+            } else {
+                view! {}.into_any()
+            }
+        }}
     }
 }
 
@@ -832,7 +904,12 @@ fn TrendsView(state: RwSignal<PlannerState>) -> impl IntoView {
 }
 
 #[component]
-fn SettingsView(state: RwSignal<PlannerState>, is_importing: RwSignal<bool>) -> impl IntoView {
+fn SettingsView(
+    state: RwSignal<PlannerState>,
+    is_importing: RwSignal<bool>,
+    show_tutorial: RwSignal<bool>,
+    tutorial_step: RwSignal<TutorialStep>,
+) -> impl IntoView {
     view! {
         <section class="view active">
             <div class="settings-grid">
@@ -876,12 +953,30 @@ fn SettingsView(state: RwSignal<PlannerState>, is_importing: RwSignal<bool>) -> 
 
                 <section class="form-panel">
                     <h3>"Data"</h3>
-                    <p>"Reset the local planner or load demo data for testing."</p>
+                    <p>"Reset the local planner, load demo data, or reopen the introduction."</p>
                     <div class="settings-actions">
-                        <button class="secondary-button" type="button" on:click=move |_| state.set(PlannerState::sample())>
+                        <button class="secondary-button" type="button" on:click=move |_| {
+                            state.update(|planner| {
+                                let onboarding = planner.onboarding.clone();
+                                *planner = PlannerState::sample();
+                                planner.onboarding = onboarding;
+                            });
+                        }>
                             "Sample"
                         </button>
-                        <button class="secondary-button danger" type="button" on:click=move |_| state.set(PlannerState::default())>
+                        <button class="secondary-button" type="button" on:click=move |_| {
+                            tutorial_step.set(TutorialStep::Welcome);
+                            show_tutorial.set(true);
+                        }>
+                            "Show tutorial"
+                        </button>
+                        <button class="secondary-button danger" type="button" on:click=move |_| {
+                            state.update(|planner| {
+                                let onboarding = planner.onboarding.clone();
+                                *planner = PlannerState::default();
+                                planner.onboarding = onboarding;
+                            });
+                        }>
                             "Clear"
                         </button>
                     </div>
@@ -1903,6 +1998,132 @@ impl ViewName {
             ViewName::Settings => "⚙",
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum TutorialStep {
+    Welcome,
+    Dashboard,
+    Bills,
+    Transactions,
+    Trends,
+    Settings,
+    YnabImport,
+    ManualSetup,
+}
+
+impl TutorialStep {
+    const COUNT: usize = 8;
+
+    fn index(self) -> usize {
+        match self {
+            TutorialStep::Welcome => 0,
+            TutorialStep::Dashboard => 1,
+            TutorialStep::Bills => 2,
+            TutorialStep::Transactions => 3,
+            TutorialStep::Trends => 4,
+            TutorialStep::Settings => 5,
+            TutorialStep::YnabImport => 6,
+            TutorialStep::ManualSetup => 7,
+        }
+    }
+
+    fn next(self) -> Self {
+        match self {
+            TutorialStep::Welcome => TutorialStep::Dashboard,
+            TutorialStep::Dashboard => TutorialStep::Bills,
+            TutorialStep::Bills => TutorialStep::Transactions,
+            TutorialStep::Transactions => TutorialStep::Trends,
+            TutorialStep::Trends => TutorialStep::Settings,
+            TutorialStep::Settings => TutorialStep::YnabImport,
+            TutorialStep::YnabImport => TutorialStep::ManualSetup,
+            TutorialStep::ManualSetup => TutorialStep::ManualSetup,
+        }
+    }
+
+    fn previous(self) -> Self {
+        match self {
+            TutorialStep::Welcome => TutorialStep::Welcome,
+            TutorialStep::Dashboard => TutorialStep::Welcome,
+            TutorialStep::Bills => TutorialStep::Dashboard,
+            TutorialStep::Transactions => TutorialStep::Bills,
+            TutorialStep::Trends => TutorialStep::Transactions,
+            TutorialStep::Settings => TutorialStep::Trends,
+            TutorialStep::YnabImport => TutorialStep::Settings,
+            TutorialStep::ManualSetup => TutorialStep::YnabImport,
+        }
+    }
+
+    fn is_last(self) -> bool {
+        self == TutorialStep::ManualSetup
+    }
+
+    fn view(self) -> Option<ViewName> {
+        match self {
+            TutorialStep::Welcome => None,
+            TutorialStep::Dashboard => Some(ViewName::Dashboard),
+            TutorialStep::Bills | TutorialStep::ManualSetup => Some(ViewName::Bills),
+            TutorialStep::Transactions => Some(ViewName::Transactions),
+            TutorialStep::Trends => Some(ViewName::Trends),
+            TutorialStep::Settings | TutorialStep::YnabImport => Some(ViewName::Settings),
+        }
+    }
+
+    fn title(self) -> &'static str {
+        match self {
+            TutorialStep::Welcome => "Welcome to Payflow Forecast",
+            TutorialStep::Dashboard => "Dashboard",
+            TutorialStep::Bills => "Bills",
+            TutorialStep::Transactions => "Transactions",
+            TutorialStep::Trends => "Trends",
+            TutorialStep::Settings => "Settings",
+            TutorialStep::YnabImport => "Start with YNAB",
+            TutorialStep::ManualSetup => "Start manually",
+        }
+    }
+
+    fn body(self) -> &'static str {
+        match self {
+            TutorialStep::Welcome => "This short introduction explains the app and the two normal ways to start: import from YNAB, or enter bills and paycheck transfers manually.",
+            TutorialStep::Dashboard => "The dashboard shows whether the recurring-payment account can stay above your minimum cash buffer. The chart combines real history with the five-year forecast so low points stand out visually.",
+            TutorialStep::Bills => "The Bills page is where recurring outflows and Paycheck Transfers live. Review the detected list after import, or create rows here when entering the plan yourself.",
+            TutorialStep::Transactions => "The Transactions page lets you review imported activity, assign a transaction to a bill, mark it non-recurring, or create a bill from a transaction when the detector missed something.",
+            TutorialStep::Trends => "Trends helps compare historical bill changes against the app forecast, especially when yearly renewals or price increases start to drift from expectation.",
+            TutorialStep::Settings => "Settings controls the starting balance, minimum buffer, safety margin, paycheck amount, data reset, and YNAB connection.",
+            TutorialStep::YnabImport => "To import from YNAB, paste your personal access token in Settings, load accounts, choose the budget and target account, then import. After import, review Bills and Transactions.",
+            TutorialStep::ManualSetup => "To start without YNAB, open Bills, add recurring bills and Paycheck Transfers, then confirm Settings. The dashboard will forecast from those entries.",
+        }
+    }
+
+    fn callout_title(self) -> &'static str {
+        match self {
+            TutorialStep::Welcome => "Existing users",
+            TutorialStep::Dashboard => "What to watch",
+            TutorialStep::Bills => "Most important review",
+            TutorialStep::Transactions => "Correction flow",
+            TutorialStep::Trends => "Use later",
+            TutorialStep::Settings => "Do this early",
+            TutorialStep::YnabImport => "Recommended path",
+            TutorialStep::ManualSetup => "No import needed",
+        }
+    }
+
+    fn callout_body(self) -> &'static str {
+        match self {
+            TutorialStep::Welcome => "Use Skip introduction if you already know the app. You can reopen this tutorial from Settings.",
+            TutorialStep::Dashboard => "Lowest projected balance and recommended transfer are the key numbers.",
+            TutorialStep::Bills => "Every recurring payment should have a clean bill row with amount, next due date, and frequency.",
+            TutorialStep::Transactions => "The Bills dropdown is the source of truth for whether a transaction belongs to a recurring bill.",
+            TutorialStep::Trends => "This becomes more useful once you have imported or entered enough history.",
+            TutorialStep::Settings => "Set the starting balance and minimum buffer before trusting the forecast.",
+            TutorialStep::YnabImport => "The token stays in this browser's local storage. Review the imported bills before relying on the forecast.",
+            TutorialStep::ManualSetup => "Manual setup is enough for forecasting, but you will not get transaction history until you import.",
+        }
+    }
+}
+
+fn complete_tutorial(state: RwSignal<PlannerState>) {
+    state.update(|state| state.onboarding.introduction_done = true);
 }
 
 fn add_bill(state: RwSignal<PlannerState>) {
