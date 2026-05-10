@@ -314,6 +314,15 @@ html[data-install-hidden="true"] .install-visible-only {
   display: none;
 }
 
+.install-settings-actions {
+  justify-content: center;
+}
+
+.install-settings-actions .secondary-button {
+  min-width: 190px;
+  max-width: 100%;
+}
+
 html[data-install-hidden="true"] .mobile-install-card {
   display: none;
 }
