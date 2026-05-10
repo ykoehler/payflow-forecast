@@ -720,6 +720,13 @@ fn InlineMoneyCell(
     on_input: impl Fn(f64) + Copy + Send + 'static,
 ) -> impl IntoView {
     let editing = RwSignal::new(false);
+    let raw_value = RwSignal::new(money_input(value()));
+    let commit = move || {
+        if let Some(value) = parse_money(&raw_value.get_untracked()) {
+            on_input(value);
+        }
+        editing.set(false);
+    };
 
     view! {
         {move || if editing.get() {
@@ -728,18 +735,26 @@ fn InlineMoneyCell(
                     class="inline-edit money-edit"
                     autofocus=true
                     inputmode="decimal"
-                    prop:value=move || money_input(value())
-                    on:input=move |event| {
-                        if let Some(value) = parse_money(&event_target_value(&event)) {
-                            on_input(value);
+                    prop:value=move || raw_value.get()
+                    on:input=move |event| raw_value.set(event_target_value(&event))
+                    on:keydown=move |event| {
+                        if event.key() == "Enter" {
+                            event.prevent_default();
+                            commit();
+                        } else if event.key() == "Escape" {
+                            event.prevent_default();
+                            editing.set(false);
                         }
                     }
-                    on:blur=move |_| editing.set(false)
+                    on:blur=move |_| commit()
                 />
             }.into_any()
         } else {
             view! {
-                <button class="inline-display money-display" type="button" on:click=move |_| editing.set(true)>
+                <button class="inline-display money-display" type="button" on:click=move |_| {
+                    raw_value.set(money_input(value()));
+                    editing.set(true);
+                }>
                     {move || money(value())}
                 </button>
             }.into_any()
@@ -811,6 +826,13 @@ fn InlineSignedMoneyCell(
     on_input: impl Fn(f64) + Copy + Send + 'static,
 ) -> impl IntoView {
     let editing = RwSignal::new(false);
+    let raw_value = RwSignal::new(money_input(value()));
+    let commit = move || {
+        if let Some(value) = parse_money(&raw_value.get_untracked()) {
+            on_input(value);
+        }
+        editing.set(false);
+    };
 
     view! {
         {move || if editing.get() {
@@ -819,13 +841,18 @@ fn InlineSignedMoneyCell(
                     class="inline-edit money-edit"
                     autofocus=true
                     inputmode="decimal"
-                    prop:value=move || money_input(value())
-                    on:input=move |event| {
-                        if let Some(value) = parse_money(&event_target_value(&event)) {
-                            on_input(value);
+                    prop:value=move || raw_value.get()
+                    on:input=move |event| raw_value.set(event_target_value(&event))
+                    on:keydown=move |event| {
+                        if event.key() == "Enter" {
+                            event.prevent_default();
+                            commit();
+                        } else if event.key() == "Escape" {
+                            event.prevent_default();
+                            editing.set(false);
                         }
                     }
-                    on:blur=move |_| editing.set(false)
+                    on:blur=move |_| commit()
                 />
             }.into_any()
         } else {
@@ -839,7 +866,10 @@ fn InlineSignedMoneyCell(
                         }
                     }
                     type="button"
-                    on:click=move |_| editing.set(true)
+                    on:click=move |_| {
+                        raw_value.set(money_input(value()));
+                        editing.set(true);
+                    }
                 >
                     {move || signed_money(value())}
                 </button>
@@ -2113,18 +2143,44 @@ fn SettingsMoney(
     value: impl Fn() -> f64 + Copy + Send + 'static,
     on_input: impl Fn(f64) + Copy + 'static,
 ) -> impl IntoView {
+    let editing = RwSignal::new(false);
+    let raw_value = RwSignal::new(money_input(value()));
+    let commit = move || {
+        if let Some(value) = parse_money(&raw_value.get_untracked()) {
+            on_input(value);
+        }
+        editing.set(false);
+    };
+
+    Effect::new(move |_| {
+        if !editing.get() {
+            raw_value.set(money_input(value()));
+        }
+    });
+
     view! {
         <label>
             {move || t(label)}
             <input
                 type="text"
                 inputmode="decimal"
-                value=move || money_input(value())
-                on:input=move |event| {
-                    if let Some(value) = parse_money(&event_target_value(&event)) {
-                        on_input(value);
+                prop:value=move || raw_value.get()
+                on:focus=move |_| {
+                    editing.set(true);
+                    raw_value.set(money_input(value()));
+                }
+                on:input=move |event| raw_value.set(event_target_value(&event))
+                on:keydown=move |event| {
+                    if event.key() == "Enter" {
+                        event.prevent_default();
+                        commit();
+                    } else if event.key() == "Escape" {
+                        event.prevent_default();
+                        editing.set(false);
+                        raw_value.set(money_input(value()));
                     }
                 }
+                on:blur=move |_| commit()
             />
         </label>
     }
