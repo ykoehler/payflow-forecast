@@ -961,7 +961,7 @@ fn SettingsView(state: RwSignal<PlannerState>, is_importing: RwSignal<bool>) -> 
                             disabled=move || is_importing.get()
                             on:click=move |_| run_ynab_choice_load(state, is_importing)
                         >
-                            "Load budgets/accounts"
+                            "Load Accounts"
                         </button>
                         <button
                             class="primary-button"
