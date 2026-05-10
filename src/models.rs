@@ -47,8 +47,6 @@ pub struct Settings {
     pub minimum_buffer: f64,
     pub margin_percent: f64,
     pub forecast_years: u32,
-    #[serde(default = "default_paycheck_amount")]
-    pub paycheck_amount: f64,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -153,13 +151,8 @@ impl Default for Settings {
             minimum_buffer: 250.0,
             margin_percent: 8.0,
             forecast_years: 5,
-            paycheck_amount: default_paycheck_amount(),
         }
     }
-}
-
-fn default_paycheck_amount() -> f64 {
-    0.0
 }
 
 impl Default for YnabSettings {

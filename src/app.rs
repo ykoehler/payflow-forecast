@@ -338,9 +338,21 @@ fn Dashboard(
                     />
                     <Metric
                         label="Paycheck pressure"
-                        value=move || paycheck_pressure_value(&state.get(), transfer.get())
+                        value=move || {
+                            let snapshot = state.get();
+                            paycheck_pressure_value(
+                                &snapshot,
+                                Date::today(),
+                                recommended_transfer_amount(&forecast.get(), &snapshot, transfer.get()),
+                            )
+                        }
                         note=move || {
-                            paycheck_pressure_note(&state.get(), transfer.get())
+                            let snapshot = state.get();
+                            paycheck_pressure_note(
+                                &snapshot,
+                                Date::today(),
+                                recommended_transfer_amount(&forecast.get(), &snapshot, transfer.get()),
+                            )
                         }
                     />
                 </div>
@@ -1158,12 +1170,6 @@ fn SettingsView(
                             state.update(|state| state.settings.margin_percent = value);
                         }
                     />
-                </section>
-
-                <section class="form-panel">
-                    <h3>{move || t("Paycheck rules")}</h3>
-                    <SettingsMoney label="Paycheck amount" value=move || state.get().settings.paycheck_amount on_input=move |value| state.update(|state| state.settings.paycheck_amount = value) />
-                    <p>{move || t("Used to warn when the recommended transfer would take too much of one paycheck.")}</p>
                 </section>
 
                 <section class="form-panel">
@@ -2383,7 +2389,7 @@ impl TutorialStep {
             TutorialStep::Bills => "The Bills page is where recurring outflows and Paycheck Transfers live. Review the detected list after import, or create rows here when entering the plan yourself.",
             TutorialStep::Transactions => "The Transactions page lets you review imported activity, assign a transaction to a bill, mark it non-recurring, or create a bill from a transaction when the detector missed something.",
             TutorialStep::Trends => "Trends helps compare historical bill changes against the app forecast, especially when yearly renewals or price increases start to drift from expectation.",
-            TutorialStep::Settings => "Settings controls the starting balance, minimum buffer, safety margin, paycheck amount, data reset, and YNAB connection.",
+            TutorialStep::Settings => "Settings controls the starting balance, minimum buffer, safety margin, data reset, and YNAB connection.",
             TutorialStep::YnabImport => "To import from YNAB, paste your personal access token in Settings, load accounts, choose the budget and target account, then import. After import, review Bills and Transactions.",
             TutorialStep::ManualSetup => "To start without YNAB, open Bills, add recurring bills and Paycheck Transfers, then confirm Settings. The dashboard will forecast from those entries.",
         }
@@ -2448,7 +2454,6 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Add or review recurring incoming transfers for this account." => {
             "Ajoutez ou révisez les virements entrants récurrents pour ce compte."
         }
-        "Add paycheck amount" => "Ajouter le montant de la paie",
         "Add Transaction" => "Ajouter une transaction",
         "Amount" => "Montant",
         "Annual increase" => "Augmentation annuelle",
@@ -2491,6 +2496,7 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Delete" => "Supprimer",
         "Desc" => "Desc",
         "Display" => "Affichage",
+        "Edit paycheck transfer" => "Modifier le virement de paie",
         "English" => "Anglais",
         "Expand" => "Agrandir",
         "Expand sidebar" => "Agrandir le menu",
@@ -2561,9 +2567,7 @@ fn tr(language: Language, key: &'static str) -> &'static str {
             "Ouvrez Payflow Forecast depuis l'écran d'accueil de votre appareil comme une appli normale."
         }
         "Past 12 months" => "12 derniers mois",
-        "Paycheck amount" => "Montant de la paie",
         "Paycheck pressure" => "Pression sur la paie",
-        "Paycheck rules" => "Règles de paie",
         "Payee" => "Bénéficiaire",
         "Payflow needs at least one paycheck transfer before it can estimate funding dates, recommended transfers, and projected balances." => {
             "Payflow a besoin d'au moins un virement de paie avant d'estimer les dates de financement, les virements recommandés et les soldes projetés."
@@ -2588,6 +2592,7 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Schedule / increase month" => "Mois d'échéance / d'augmentation",
         "Select account" => "Choisir un compte",
         "Select budget" => "Choisir un budget",
+        "Set amount" => "Définir le montant",
         "Settings" => "Paramètres",
         "Short by" => "Manque de",
         "Show tutorial" => "Afficher le tutoriel",
@@ -2622,9 +2627,6 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Use a personal access token to import the dedicated recurring-payment account." => {
             "Utilisez un jeton d'accès personnel pour importer le compte dédié aux paiements récurrents."
         }
-        "Used to warn when the recommended transfer would take too much of one paycheck." => {
-            "Utilisé pour avertir lorsque le virement recommandé prendrait trop d'une paie."
-        }
         "YNAB import" => "Import YNAB",
         "YNAB transaction summary" => "Sommaire des transactions YNAB",
         "Very high transfer" => "Virement très élevé",
@@ -2653,8 +2655,8 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Trends helps compare historical bill changes against the app forecast, especially when yearly renewals or price increases start to drift from expectation." => {
             "Tendances aide à comparer les changements historiques des factures avec la prévision, surtout lorsque les renouvellements annuels ou les hausses s'écartent des attentes."
         }
-        "Settings controls the starting balance, minimum buffer, safety margin, paycheck amount, data reset, and YNAB connection." => {
-            "Les paramètres contrôlent le solde de départ, le coussin minimal, la marge de sécurité, le montant de la paie, les données et la connexion YNAB."
+        "Settings controls the starting balance, minimum buffer, safety margin, data reset, and YNAB connection." => {
+            "Les paramètres contrôlent le solde de départ, le coussin minimal, la marge de sécurité, les données et la connexion YNAB."
         }
         "To import from YNAB, paste your personal access token in Settings, load accounts, choose the budget and target account, then import. After import, review Bills and Transactions." => {
             "Pour importer depuis YNAB, collez votre jeton dans Paramètres, chargez les comptes, choisissez le budget et le compte cible, puis importez. Ensuite, révisez Factures et Transactions."
@@ -3563,36 +3565,51 @@ fn parse_frequency(value: &str) -> Frequency {
     }
 }
 
-fn paycheck_pressure_value(state: &PlannerState, transfer: f64) -> String {
-    let paycheck = state.settings.paycheck_amount;
-    if paycheck <= 0.0 {
-        return t("Set paycheck").to_string();
-    }
+fn paycheck_pressure_value(state: &PlannerState, today: Date, recommended_transfer: f64) -> String {
+    let Some(paycheck) = next_paycheck_amount(state, today) else {
+        return t("Set amount").to_string();
+    };
 
-    format!("{:.1}%", (transfer / paycheck) * 100.0)
+    format!("{:.1}%", (recommended_transfer / paycheck) * 100.0)
 }
 
-fn paycheck_pressure_note(state: &PlannerState, transfer: f64) -> String {
-    let paycheck = state.settings.paycheck_amount;
-    if paycheck <= 0.0 {
-        return t("Add paycheck amount").to_string();
-    }
+fn paycheck_pressure_note(state: &PlannerState, today: Date, recommended_transfer: f64) -> String {
+    let Some(paycheck) = next_paycheck_amount(state, today) else {
+        return t("Edit paycheck transfer").to_string();
+    };
 
-    if transfer > paycheck {
-        format!("{} {}", t("Short by"), money(transfer - paycheck))
-    } else if transfer > paycheck * 0.8 {
+    if recommended_transfer > paycheck {
+        format!(
+            "{} {}",
+            t("Short by"),
+            money(recommended_transfer - paycheck)
+        )
+    } else if recommended_transfer > paycheck * 0.8 {
         t("Very high transfer").to_string()
     } else {
         format!(
             "{} {}",
-            money(paycheck - transfer),
+            money(paycheck - recommended_transfer),
             t("left after transfer")
         )
     }
 }
 
+fn next_paycheck_amount(state: &PlannerState, today: Date) -> Option<f64> {
+    state
+        .paychecks
+        .iter()
+        .filter(|paycheck| paycheck.amount > 0.0)
+        .min_by_key(|paycheck| next_bill_due_date(paycheck, today))
+        .map(|paycheck| paycheck.amount)
+}
+
+fn recommended_transfer_amount(forecast: &Forecast, state: &PlannerState, transfer: f64) -> f64 {
+    transfer + shortfall_add_on_per_paycheck(forecast, state).unwrap_or(0.0)
+}
+
 fn recommended_transfer_value(forecast: &Forecast, state: &PlannerState, transfer: f64) -> String {
-    money(transfer + shortfall_add_on_per_paycheck(forecast, state).unwrap_or(0.0))
+    money(recommended_transfer_amount(forecast, state, transfer))
 }
 
 fn recommended_transfer_note(forecast: &Forecast, state: &PlannerState) -> String {
@@ -4587,7 +4604,8 @@ mod tests {
         actual_balance_points, apply_recurring_candidates, classify_transaction, days_from_civil,
         detect_recurring_candidates, group_transactions_by_category, merge_transaction_corrections,
         next_bill_due_date, next_thursday_after, normalize_category_name, parse_money,
-        paydays_before, recommended_transfer_note, recommended_transfer_value,
+        paycheck_pressure_note, paycheck_pressure_value, paydays_before,
+        recommended_transfer_amount, recommended_transfer_note, recommended_transfer_value,
         refresh_recurring_detection, shortfall_add_on_per_paycheck, sort_transactions_by_date,
         sync_detected_bills, transaction_bill_select_value, transaction_group_amount_label,
         transaction_group_recurring_label, transaction_recurring_label, TransactionSortColumn,
@@ -4965,7 +4983,6 @@ mod tests {
     #[test]
     fn detected_semimonthly_income_creates_paycheck_entry() {
         let mut state = PlannerState::default();
-        state.settings.paycheck_amount = 3818.0;
         state.transactions = tracked_series(
             "Employer Payroll",
             &[
@@ -4993,7 +5010,6 @@ mod tests {
         assert_eq!(state.paychecks[0].name, "Employer Payroll");
         assert_eq!(state.paychecks[0].amount, 1620.25);
         assert_eq!(state.paychecks[0].frequency, Frequency::Semimonthly);
-        assert_eq!(state.settings.paycheck_amount, 3818.0);
         assert!(classified
             .iter()
             .all(|transaction| transaction.classification == TransactionClass::Paycheck));
@@ -5029,7 +5045,6 @@ mod tests {
     #[test]
     fn recurring_refresh_builds_bills_and_paycheck_transfers_from_imported_transactions() {
         let mut state = PlannerState::default();
-        state.settings.paycheck_amount = 3818.0;
         state.transactions = vec![
             tracked("Employer Payroll", "2026-01-15", 1620.25),
             tracked("Employer Payroll", "2026-01-30", 1620.25),
@@ -5049,7 +5064,6 @@ mod tests {
 
         refresh_recurring_detection(&mut state);
 
-        assert_eq!(state.settings.paycheck_amount, 3818.0);
         assert_eq!(state.paychecks.len(), 1);
         assert_eq!(state.paychecks[0].name, "Employer Payroll");
         assert_eq!(state.paychecks[0].frequency, Frequency::Semimonthly);
@@ -5311,6 +5325,72 @@ mod tests {
         assert_eq!(
             recommended_transfer_value(&forecast, &state, 200.0),
             "$255.87"
+        );
+    }
+
+    #[test]
+    fn paycheck_pressure_uses_transfer_amount_not_settings() {
+        let mut state = PlannerState::default();
+        state.paychecks.push(Bill {
+            id: 1,
+            name: "Paycheck transfer".to_string(),
+            amount: 1500.0,
+            due_day: 14,
+            frequency: Frequency::Biweekly,
+            annual_increase: 0.0,
+            renewal_month: 5,
+            anchor_date: Some("2026-05-14".to_string()),
+            history: Vec::new(),
+        });
+        let forecast = Forecast {
+            daily: vec![DailyPoint {
+                date: Date {
+                    year: 2026,
+                    month: 5,
+                    day: 3,
+                },
+                balance: 900.0,
+                inflow: 0.0,
+                outflow: 0.0,
+            }],
+            events: Vec::new(),
+            low_point: DailyPoint {
+                date: Date {
+                    year: 2026,
+                    month: 5,
+                    day: 3,
+                },
+                balance: 900.0,
+                inflow: 0.0,
+                outflow: 0.0,
+            },
+            current_year_outflow: 0.0,
+        };
+        let recommended_transfer = recommended_transfer_amount(&forecast, &state, 300.0);
+
+        assert_eq!(
+            paycheck_pressure_value(
+                &state,
+                Date {
+                    year: 2026,
+                    month: 5,
+                    day: 10,
+                },
+                recommended_transfer,
+            ),
+            "20.0%"
+        );
+        assert_eq!(
+            paycheck_pressure_note(
+                &state,
+                Date {
+                    year: 2026,
+                    month: 5,
+                    day: 10,
+                },
+                recommended_transfer,
+            ),
+            "$1200.00 left after transfer"
         );
     }
 
