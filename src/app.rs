@@ -93,7 +93,6 @@ pub fn App() -> impl IntoView {
             <section class="content">
                 <header class="topbar">
                     <div>
-                        <p class="eyebrow">"Bill-payment account"</p>
                         <h2>{move || active_view.get().label()}</h2>
                     </div>
                 </header>
