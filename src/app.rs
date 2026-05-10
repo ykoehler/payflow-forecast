@@ -96,24 +96,6 @@ pub fn App() -> impl IntoView {
                         <p class="eyebrow">"Bill-payment account"</p>
                         <h2>{move || active_view.get().label()}</h2>
                     </div>
-                    <div class="actions">
-                        <button class="icon-button" type="button" on:click=move |_| state.set(PlannerState::default())>
-                            "Clear"
-                        </button>
-                        <button class="icon-button" type="button" on:click=move |_| state.set(PlannerState::sample())>
-                            "Sample"
-                        </button>
-                        <button
-                            class="primary-button"
-                            type="button"
-                            on:click=move |_| {
-                                active_view.set(ViewName::Bills);
-                                add_bill(state);
-                            }
-                        >
-                            "Add Bill"
-                        </button>
-                    </div>
                 </header>
 
                 {move || match active_view.get() {
@@ -891,6 +873,19 @@ fn SettingsView(state: RwSignal<PlannerState>, is_importing: RwSignal<bool>) -> 
                     <h3>"Paycheck rules"</h3>
                     <SettingsMoney label="Paycheck amount" value=move || state.get().settings.paycheck_amount on_input=move |value| state.update(|state| state.settings.paycheck_amount = value) />
                     <p>"Used to warn when the recommended transfer would take too much of one paycheck."</p>
+                </section>
+
+                <section class="form-panel">
+                    <h3>"Data"</h3>
+                    <p>"Reset the local planner or load demo data for testing."</p>
+                    <div class="settings-actions">
+                        <button class="secondary-button" type="button" on:click=move |_| state.set(PlannerState::sample())>
+                            "Sample"
+                        </button>
+                        <button class="secondary-button danger" type="button" on:click=move |_| state.set(PlannerState::default())>
+                            "Clear"
+                        </button>
+                    </div>
                 </section>
 
                 <section class="form-panel ynab-panel">

@@ -19,7 +19,7 @@ The first version focuses on forecasting the account balance from recurring bill
 - YNAB personal access token import for the target recurring-payment account
 - Imported transaction classification into recurring payments, transfers, and misc activity
 
-The production default state is empty. Use the `Sample` button only for testing and demos.
+The production default state is empty. Use the Settings `Sample` option only for testing and demos.
 
 ## YNAB Import
 
