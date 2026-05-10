@@ -15,6 +15,8 @@ use crate::models::{
 
 #[cfg(target_arch = "wasm32")]
 const STORAGE_KEY: &str = "payflow-forecast-state-v1";
+#[cfg(target_arch = "wasm32")]
+const LANGUAGE_COOKIE_NAME: &str = "payflow-language";
 
 const NON_RECURRING_CATEGORY: &str = "Non-Recurring";
 const UNCATEGORIZED_CATEGORY: &str = "Uncategorized";
@@ -30,10 +32,38 @@ enum Language {
     French,
 }
 
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum LanguagePreference {
+    Browser,
+    English,
+    French,
+}
+
+impl LanguagePreference {
+    fn language(self) -> Language {
+        match self {
+            LanguagePreference::Browser => detect_browser_language(),
+            LanguagePreference::English => Language::English,
+            LanguagePreference::French => Language::French,
+        }
+    }
+
+    fn code(self) -> &'static str {
+        match self {
+            LanguagePreference::Browser => "browser",
+            LanguagePreference::English => "en",
+            LanguagePreference::French => "fr",
+        }
+    }
+}
+
 #[component]
 pub fn App() -> impl IntoView {
     let state = RwSignal::new(load_planner_state().unwrap_or_default());
-    let language = RwSignal::new(detect_language());
+    let language_preference = RwSignal::new(load_language_preference());
+    let language = RwSignal::new(language_preference.get_untracked().language());
+    provide_context(language_preference);
     provide_context(language);
     let start = Date::today();
     let active_view = RwSignal::new(ViewName::Dashboard);
@@ -44,6 +74,12 @@ pub fn App() -> impl IntoView {
 
     Effect::new(move |_| {
         persist_planner_state(&state.get());
+    });
+
+    Effect::new(move |_| {
+        let preference = language_preference.get();
+        language.set(preference.language());
+        persist_language_preference(preference);
     });
 
     Effect::new(move |_| {
@@ -923,10 +959,35 @@ fn SettingsView(
     tutorial_step: RwSignal<TutorialStep>,
 ) -> impl IntoView {
     let is_editing_token = RwSignal::new(false);
+    let language_preference =
+        use_context::<RwSignal<LanguagePreference>>().expect("language preference context");
 
     view! {
         <section class="view active">
             <div class="settings-grid">
+                <section class="form-panel">
+                    <h3>{move || t("Display")}</h3>
+                    <label>
+                        {move || t("Language")}
+                        <select
+                            prop:value=move || language_preference.get().code()
+                            on:change=move |event| {
+                                let next = match event_target_value(&event).as_str() {
+                                    "en" => LanguagePreference::English,
+                                    "fr" => LanguagePreference::French,
+                                    _ => LanguagePreference::Browser,
+                                };
+                                language_preference.set(next);
+                            }
+                        >
+                            <option value="browser">{move || t("Browser default")}</option>
+                            <option value="en">{move || t("English")}</option>
+                            <option value="fr">{move || t("French")}</option>
+                        </select>
+                    </label>
+                    <p>{move || t("Browser default follows your browser language. Choosing a language saves that preference in a cookie.")}</p>
+                </section>
+
                 <section class="form-panel">
                     <h3>{move || t("Account setup")}</h3>
                     <SettingsMoney label="Starting balance" value=move || state.get().settings.starting_balance on_input=move |value| state.update(|state| state.settings.starting_balance = value) />
@@ -2214,6 +2275,10 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Bills" => "Factures",
         "Bills and paycheck transfers" => "Factures et virements de paie",
         "Bills / Paycheck Transfers" => "Factures / virements de paie",
+        "Browser default" => "Langue du navigateur",
+        "Browser default follows your browser language. Choosing a language saves that preference in a cookie." => {
+            "La langue du navigateur suit votre navigateur. Choisir une langue enregistre cette preference dans un cookie."
+        }
         "Budget" => "Budget",
         "buffer floor" => "plancher du coussin",
         "Clear" => "Effacer",
@@ -2232,6 +2297,8 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Date" => "Date",
         "Delete" => "Supprimer",
         "Desc" => "Desc",
+        "Display" => "Affichage",
+        "English" => "Anglais",
         "Expand" => "Agrandir",
         "Expand sidebar" => "Agrandir le menu",
         "Expected increase" => "Augmentation prevue",
@@ -2245,6 +2312,7 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "forecast" => "prevu",
         "Forget token" => "Oublier le jeton",
         "Frequency" => "Frequence",
+        "French" => "Francais",
         "Group" => "Grouper",
         "Group transactions" => "Grouper les transactions",
         "Hide advanced bill fields" => "Masquer les details de la facture",
@@ -2259,6 +2327,7 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Increase analysis" => "Analyse des augmentations",
         "Irregular" => "Irregulier",
         "Latest change" => "Dernier changement",
+        "Language" => "Langue",
         "left after transfer" => "restants apres virement",
         "Load Accounts" => "Charger les comptes",
         "Loading..." => "Chargement...",
@@ -2411,7 +2480,70 @@ fn tr(language: Language, key: &'static str) -> &'static str {
 }
 
 #[cfg(target_arch = "wasm32")]
-fn detect_language() -> Language {
+fn load_language_preference() -> LanguagePreference {
+    match read_language_cookie().as_deref() {
+        Some("en") => LanguagePreference::English,
+        Some("fr") => LanguagePreference::French,
+        _ => LanguagePreference::Browser,
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn load_language_preference() -> LanguagePreference {
+    LanguagePreference::Browser
+}
+
+#[cfg(target_arch = "wasm32")]
+fn persist_language_preference(preference: LanguagePreference) {
+    let Some(document) = web_sys::window().and_then(|window| window.document()) else {
+        return;
+    };
+
+    let cookie = match preference {
+        LanguagePreference::Browser => {
+            format!("{LANGUAGE_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax")
+        }
+        LanguagePreference::English | LanguagePreference::French => format!(
+            "{LANGUAGE_COOKIE_NAME}={}; Path=/; Max-Age=31536000; SameSite=Lax",
+            preference.code()
+        ),
+    };
+
+    let _ = js_sys::Reflect::set(
+        document.as_ref(),
+        &wasm_bindgen::JsValue::from_str("cookie"),
+        &wasm_bindgen::JsValue::from_str(&cookie),
+    );
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn persist_language_preference(preference: LanguagePreference) {
+    let _ = preference;
+}
+
+#[cfg(target_arch = "wasm32")]
+fn read_language_cookie() -> Option<String> {
+    let cookies = web_sys::window()
+        .and_then(|window| window.document())
+        .and_then(|document| {
+            js_sys::Reflect::get(
+                document.as_ref(),
+                &wasm_bindgen::JsValue::from_str("cookie"),
+            )
+            .ok()
+        })
+        .and_then(|value| value.as_string())?;
+
+    cookies
+        .split(';')
+        .filter_map(|cookie| cookie.trim().split_once('='))
+        .find_map(|(name, value)| {
+            (name == LANGUAGE_COOKIE_NAME).then(|| value.trim().to_lowercase())
+        })
+}
+
+#[cfg(target_arch = "wasm32")]
+fn detect_browser_language() -> Language {
     web_sys::window()
         .and_then(|window| window.navigator().language())
         .filter(|language| language.to_lowercase().starts_with("fr"))
@@ -2420,7 +2552,7 @@ fn detect_language() -> Language {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn detect_language() -> Language {
+fn detect_browser_language() -> Language {
     Language::English
 }
 

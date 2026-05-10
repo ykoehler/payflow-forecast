@@ -13,7 +13,7 @@ leptos = { version = "0.8.19", features = ["csr"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 wasm-bindgen = "0.2"
-web-sys = { version = "0.3", features = ["Navigator", "Storage", "Window"] }
+web-sys = { version = "0.3", features = ["Document", "Navigator", "Storage", "Window"] }
 
 [dev-dependencies]
 pretty_assertions = "1"

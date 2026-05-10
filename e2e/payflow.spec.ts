@@ -327,6 +327,26 @@ test.describe("French browser locale", () => {
     await expect(page.getByLabel("Jeton d'acces personnel")).toBeVisible();
     await expect(page.getByRole("button", { name: "Charger les comptes" })).toBeVisible();
   });
+
+  test("can override the browser language from Settings and keeps it in a cookie", async ({ page }) => {
+    await seedPlannerState(page, plannerState());
+    await page.goto("./");
+
+    await expect(page.getByRole("heading", { name: "Tableau de bord" })).toBeVisible();
+    await page.getByRole("button", { name: "Parametres" }).click();
+    await page.getByLabel("Langue").selectOption("en");
+
+    await expect(page.locator(".topbar h2")).toHaveText("Settings");
+    await expect(page.getByLabel("Language")).toHaveValue("en");
+    await expect
+      .poll(() => page.evaluate(() => document.cookie))
+      .toContain("payflow-language=en");
+
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await page.getByRole("button", { name: "Settings" }).click();
+    await expect(page.getByLabel("Language")).toHaveValue("en");
+  });
 });
 
 test("imports YNAB data and turns recurring activity into bills, paycheck transfers, and unassigned transactions", async ({ page }) => {
