@@ -1105,42 +1105,6 @@ fn SettingsView(
         <section class="view active">
             <div class="settings-grid">
                 <section class="form-panel">
-                    <h3>{move || t("Display")}</h3>
-                    <label>
-                        {move || t("Language")}
-                        <select
-                            prop:value=move || language_preference.get().code()
-                            on:change=move |event| {
-                                let next = match event_target_value(&event).as_str() {
-                                    "en" => LanguagePreference::English,
-                                    "fr" => LanguagePreference::French,
-                                    _ => LanguagePreference::Browser,
-                                };
-                                language_preference.set(next);
-                            }
-                        >
-                            <option value="browser">{move || t("Browser default")}</option>
-                            <option value="en">{move || t("English")}</option>
-                            <option value="fr">{move || t("French")}</option>
-                        </select>
-                    </label>
-                    <p>{move || t("Browser default follows your browser language. Choosing a language saves that preference in a cookie.")}</p>
-                </section>
-
-                <section class="form-panel">
-                    <h3>{move || t("Install button")}</h3>
-                    <p>{move || t("Hide the install button on this device if Payflow is already on your home screen.")}</p>
-                    <div class="settings-actions install-settings-actions">
-                        <button class="secondary-button install-visible-only" type="button" data-install-hide>
-                            {move || t("Hide install button")}
-                        </button>
-                        <button class="secondary-button install-hidden-only" type="button" data-install-show>
-                            {move || t("Show install button")}
-                        </button>
-                    </div>
-                </section>
-
-                <section class="form-panel">
                     <h3>{move || t("Account setup")}</h3>
                     <SettingsMoney label="Starting balance" value=move || state.get().settings.starting_balance on_input=move |value| state.update(|state| state.settings.starting_balance = value) />
                     <SettingsMoney label="Minimum cash buffer" value=move || state.get().settings.minimum_buffer on_input=move |value| state.update(|state| state.settings.minimum_buffer = value) />
@@ -1328,6 +1292,42 @@ fn SettingsView(
                     <div class="import-status">
                         <strong>{move || state.get().ynab.last_import_status}</strong>
                         <span>{move || state.get().ynab.last_imported_at.unwrap_or_else(|| t("Never imported").to_string())}</span>
+                    </div>
+                </section>
+
+                <section class="form-panel">
+                    <h3>{move || t("Display")}</h3>
+                    <label>
+                        {move || t("Language")}
+                        <select
+                            prop:value=move || language_preference.get().code()
+                            on:change=move |event| {
+                                let next = match event_target_value(&event).as_str() {
+                                    "en" => LanguagePreference::English,
+                                    "fr" => LanguagePreference::French,
+                                    _ => LanguagePreference::Browser,
+                                };
+                                language_preference.set(next);
+                            }
+                        >
+                            <option value="browser">{move || t("Browser default")}</option>
+                            <option value="en">{move || t("English")}</option>
+                            <option value="fr">{move || t("French")}</option>
+                        </select>
+                    </label>
+                    <p>{move || t("Browser default follows your browser language. Choosing a language saves that preference in a cookie.")}</p>
+                </section>
+
+                <section class="form-panel">
+                    <h3>{move || t("Install button")}</h3>
+                    <p>{move || t("Hide the install button on this device if Payflow is already on your home screen.")}</p>
+                    <div class="settings-actions install-settings-actions">
+                        <button class="secondary-button install-visible-only" type="button" data-install-hide>
+                            {move || t("Hide install button")}
+                        </button>
+                        <button class="secondary-button install-hidden-only" type="button" data-install-show>
+                            {move || t("Show install button")}
+                        </button>
                     </div>
                 </section>
             </div>
