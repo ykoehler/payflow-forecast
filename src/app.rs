@@ -2786,7 +2786,7 @@ fn add_paycheck(state: RwSignal<PlannerState>) {
         state.paychecks.push(Bill {
             id,
             name: "Paycheck transfer".to_string(),
-            amount: 1000.0,
+            amount: 1500.0,
             due_day: next_thursday.day,
             frequency: Frequency::Biweekly,
             annual_increase: 0.0,
