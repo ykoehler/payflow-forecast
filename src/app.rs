@@ -23,9 +23,18 @@ const BILL_SELECT_NON_RECURRING: &str = "__non_recurring__";
 const BILL_SELECT_CREATE: &str = "__create_bill__";
 const PAYCHECK_SELECT_PREFIX: &str = "paycheck:";
 
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum Language {
+    English,
+    French,
+}
+
 #[component]
 pub fn App() -> impl IntoView {
     let state = RwSignal::new(load_planner_state().unwrap_or_default());
+    let language = RwSignal::new(detect_language());
+    provide_context(language);
     let start = Date::today();
     let active_view = RwSignal::new(ViewName::Dashboard);
     let is_importing = RwSignal::new(false);
@@ -61,11 +70,11 @@ pub fn App() -> impl IntoView {
                     <span class="brand-mark">"PF"</span>
                     <div class="brand-copy">
                         <h1>"Payflow Forecast"</h1>
-                        <p>"Recurring account planner"</p>
+                        <p>{move || t("Recurring account planner")}</p>
                     </div>
                 </div>
 
-                <nav class="nav-tabs" aria-label="Views">
+                <nav class="nav-tabs" aria-label=move || t("Views")>
                     <TabButton view=ViewName::Dashboard active_view />
                     <TabButton view=ViewName::Bills active_view />
                     <TabButton view=ViewName::Transactions active_view />
@@ -78,16 +87,16 @@ pub fn App() -> impl IntoView {
                     type="button"
                     aria-label=move || {
                         if sidebar_collapsed.get() {
-                            "Expand sidebar"
+                            t("Expand sidebar")
                         } else {
-                            "Collapse sidebar"
+                            t("Collapse sidebar")
                         }
                     }
                     title=move || {
                         if sidebar_collapsed.get() {
-                            "Expand sidebar"
+                            t("Expand sidebar")
                         } else {
-                            "Collapse sidebar"
+                            t("Collapse sidebar")
                         }
                     }
                     aria-expanded=move || (!sidebar_collapsed.get()).to_string()
@@ -95,7 +104,7 @@ pub fn App() -> impl IntoView {
                 >
                     <span aria-hidden="true">{move || if sidebar_collapsed.get() { ">" } else { "<" }}</span>
                     <span class="sidebar-toggle-label">
-                        {move || if sidebar_collapsed.get() { "Expand" } else { "Collapse" }}
+                        {move || if sidebar_collapsed.get() { t("Expand") } else { t("Collapse") }}
                     </span>
                 </button>
             </aside>
@@ -103,7 +112,7 @@ pub fn App() -> impl IntoView {
             <section class="content">
                 <header class="topbar">
                     <div>
-                        <h2>{move || active_view.get().label()}</h2>
+                        <h2>{move || active_view.get().label(current_language())}</h2>
                     </div>
                 </header>
 
@@ -132,12 +141,12 @@ fn TabButton(view: ViewName, active_view: RwSignal<ViewName>) -> impl IntoView {
                 }
             }
             type="button"
-            aria-label=view.label()
-            title=view.label()
+            aria-label=move || view.label(current_language())
+            title=move || view.label(current_language())
             on:click=move |_| active_view.set(view)
         >
             <span class="tab-icon" aria-hidden="true">{view.icon()}</span>
-            <span class="tab-label">{view.label()}</span>
+            <span class="tab-label">{move || view.label(current_language())}</span>
         </button>
     }
 }
@@ -171,14 +180,14 @@ fn TutorialOverlay(
                     <section class="tutorial-backdrop" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
                         <article class="tutorial-card">
                             <div class="tutorial-progress">
-                                <span>{format!("Step {} of {}", step.index() + 1, TutorialStep::COUNT)}</span>
-                                <button class="text-button" type="button" on:click=skip>"Skip introduction"</button>
+                                <span>{move || format!("{} {} {} {}", t("Step"), step.index() + 1, t("of"), TutorialStep::COUNT)}</span>
+                                <button class="text-button" type="button" on:click=skip>{move || t("Skip introduction")}</button>
                             </div>
-                            <h3 id="tutorial-title">{step.title()}</h3>
-                            <p>{step.body()}</p>
+                            <h3 id="tutorial-title">{move || t(step.title())}</h3>
+                            <p>{move || t(step.body())}</p>
                             <div class="tutorial-callout">
-                                <strong>{step.callout_title()}</strong>
-                                <span>{step.callout_body()}</span>
+                                <strong>{move || t(step.callout_title())}</strong>
+                                <span>{move || t(step.callout_body())}</span>
                             </div>
                             <div class="tutorial-actions">
                                 <button
@@ -187,10 +196,10 @@ fn TutorialOverlay(
                                     disabled=move || tutorial_step.get() == TutorialStep::Welcome
                                     on:click=move |_| tutorial_step.update(|step| *step = step.previous())
                                 >
-                                    "Back"
+                                    {move || t("Back")}
                                 </button>
                                 <button class="primary-button" type="button" on:click=next>
-                                    {move || if tutorial_step.get().is_last() { "Finish" } else { "Next" }}
+                                    {move || if tutorial_step.get().is_last() { t("Finish") } else { t("Next") }}
                                 </button>
                             </div>
                         </article>
@@ -234,14 +243,14 @@ fn Dashboard(
             <section class="chart-section">
                 <div class="section-heading">
                     <div>
-                        <h3>"Balance and activity"</h3>
-                        <p>"Adaptive transfers keep the account near the required reserve instead of accumulating excess cash."</p>
+                        <h3>{move || t("Balance and activity")}</h3>
+                        <p>{move || t("Adaptive transfers keep the account near the required reserve instead of accumulating excess cash.")}</p>
                     </div>
                     <div class="legend">
-                        <span><i class="actual-key"></i>"Actual balance"</span>
-                        <span><i class="line-key"></i>"Projected balance"</span>
-                        <span><i class="inflow-key"></i>"Inflow"</span>
-                        <span><i class="outflow-key"></i>"Outflow"</span>
+                        <span><i class="actual-key"></i>{move || t("Actual balance")}</span>
+                        <span><i class="line-key"></i>{move || t("Projected balance")}</span>
+                        <span><i class="inflow-key"></i>{move || t("Inflow")}</span>
+                        <span><i class="outflow-key"></i>{move || t("Outflow")}</span>
                     </div>
                 </div>
                 {move || {
@@ -257,7 +266,7 @@ fn Dashboard(
 
             <section class="split-layout">
                 <article class="table-panel full-span">
-                    <div class="section-heading"><h3>"Upcoming payments"</h3></div>
+                    <div class="section-heading"><h3>{move || t("Upcoming payments")}</h3></div>
                     <div class="compact-list">
                         {move || forecast.get().events
                             .into_iter()
@@ -266,7 +275,7 @@ fn Dashboard(
                             .map(|event| view! {
                                 <div class="list-row">
                                     <div class="row-top"><span>{event.name}</span><span class="negative">{money(event.amount.abs())}</span></div>
-                                    <div class="row-sub">{format!("{} after payment: {}", event.date.label(), money(event.balance))}</div>
+                                    <div class="row-sub">{format!("{} {}: {}", event.date.label(), t("after payment"), money(event.balance))}</div>
                                 </div>
                             })
                             .collect_view()}
@@ -285,7 +294,7 @@ fn Metric(
 ) -> impl IntoView {
     view! {
         <article class="metric-card">
-            <span>{label}</span>
+            <span>{move || t(label)}</span>
             <strong>{value}</strong>
             <small>{note}</small>
         </article>
@@ -298,20 +307,20 @@ fn BillsView(state: RwSignal<PlannerState>) -> impl IntoView {
         <section class="view active">
             <div class="section-heading">
                 <div>
-                    <h3>"Recurring payments"</h3>
-                    <p>"Click any value to edit it. Expand a row for schedule and increase details."</p>
+                    <h3>{move || t("Recurring payments")}</h3>
+                    <p>{move || t("Click any value to edit it. Expand a row for schedule and increase details.")}</p>
                 </div>
-                <button class="primary-button" type="button" on:click=move |_| add_bill(state)>"Add Bill"</button>
+                <button class="primary-button" type="button" on:click=move |_| add_bill(state)>{move || t("Add Bill")}</button>
             </div>
             <div class="table-wrap bill-table-wrap" data-testid="bills-table">
                 <table class="bill-table">
                     <thead>
                         <tr>
                             <th class="bill-expand-head"></th>
-                            <th>"Name"</th>
-                            <th>"Amount"</th>
-                            <th>"Next due date"</th>
-                            <th>"Frequency"</th>
+                            <th>{move || t("Name")}</th>
+                            <th>{move || t("Amount")}</th>
+                            <th>{move || t("Next due date")}</th>
+                            <th>{move || t("Frequency")}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -325,8 +334,8 @@ fn BillsView(state: RwSignal<PlannerState>) -> impl IntoView {
             </div>
             <div class="section-heading subsection-heading">
                 <div>
-                    <h3>"Paycheck Transfers"</h3>
-                    <p>"Recurring incoming transfers detected from transactions."</p>
+                    <h3>{move || t("Paycheck Transfers")}</h3>
+                    <p>{move || t("Recurring incoming transfers detected from transactions.")}</p>
                 </div>
             </div>
             <div class="table-wrap bill-table-wrap" data-testid="paycheck-transfers-table">
@@ -334,10 +343,10 @@ fn BillsView(state: RwSignal<PlannerState>) -> impl IntoView {
                     <thead>
                         <tr>
                             <th class="bill-expand-head"></th>
-                            <th>"Name"</th>
-                            <th>"Amount"</th>
-                            <th>"Next date"</th>
-                            <th>"Frequency"</th>
+                            <th>{move || t("Name")}</th>
+                            <th>{move || t("Amount")}</th>
+                            <th>{move || t("Next date")}</th>
+                            <th>{move || t("Frequency")}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -345,7 +354,7 @@ fn BillsView(state: RwSignal<PlannerState>) -> impl IntoView {
                             when=move || !state.get().paychecks.is_empty()
                             fallback=move || view! {
                                 <tr class="empty-table-row">
-                                    <td colspan="5">"No recurring paycheck transfers detected yet."</td>
+                                    <td colspan="5">{move || t("No recurring paycheck transfers detected yet.")}</td>
                                 </tr>
                             }
                         >
@@ -387,7 +396,7 @@ fn BillRow(state: RwSignal<PlannerState>, id: u32) -> impl IntoView {
                 <button
                     class="bill-expand-button"
                     type="button"
-                    aria-label=move || if expanded.get() { "Hide advanced bill fields" } else { "Show advanced bill fields" }
+                    aria-label=move || if expanded.get() { t("Hide advanced bill fields") } else { t("Show advanced bill fields") }
                     aria-expanded=move || expanded.get().to_string()
                     on:click=move |_| expanded.update(|value| *value = !*value)
                 >
@@ -423,14 +432,14 @@ fn BillRow(state: RwSignal<PlannerState>, id: u32) -> impl IntoView {
             <td colspan="4">
                 <div class="bill-advanced-fields">
                     <label>
-                        <span>"Annual increase"</span>
+                        <span>{move || t("Annual increase")}</span>
                         <InlineNumberField
                             value=annual_increase
                             on_input=move |value| update_bill(state, id, |bill| bill.annual_increase = value.max(0.0))
                         />
                     </label>
                     <label>
-                        <span>"Schedule / increase month"</span>
+                        <span>{move || t("Schedule / increase month")}</span>
                         <select
                             class="compact-select"
                             prop:value=move || renewal_month().to_string()
@@ -447,12 +456,12 @@ fn BillRow(state: RwSignal<PlannerState>, id: u32) -> impl IntoView {
                         </select>
                     </label>
                     <p>
-                        "For yearly and quarterly bills, this month anchors the payment schedule. For monthly bills, it is when yearly increases begin in the projection."
+                        {move || t("For yearly and quarterly bills, this month anchors the payment schedule. For monthly bills, it is when yearly increases begin in the projection.")}
                     </p>
                     <div class="bill-danger-zone">
                         <button class="small-button danger" type="button" on:click=move |_| {
                             state.update(|state| state.bills.retain(|bill| bill.id != id));
-                        }>"Delete"</button>
+                        }>{move || t("Delete")}</button>
                     </div>
                 </div>
             </td>
@@ -503,7 +512,7 @@ fn PaycheckRow(state: RwSignal<PlannerState>, id: u32) -> impl IntoView {
                 <button
                     class="bill-expand-button"
                     type="button"
-                    aria-label=move || if expanded.get() { "Hide paycheck transfer details" } else { "Show paycheck transfer details" }
+                    aria-label=move || if expanded.get() { t("Hide paycheck transfer details") } else { t("Show paycheck transfer details") }
                     aria-expanded=move || expanded.get().to_string()
                     on:click=move |_| expanded.update(|value| *value = !*value)
                 >
@@ -539,14 +548,14 @@ fn PaycheckRow(state: RwSignal<PlannerState>, id: u32) -> impl IntoView {
             <td colspan="4">
                 <div class="bill-advanced-fields">
                     <label>
-                        <span>"Expected increase"</span>
+                        <span>{move || t("Expected increase")}</span>
                         <InlineNumberField
                             value=annual_increase
                             on_input=move |value| update_paycheck(state, id, |paycheck| paycheck.annual_increase = value.max(0.0))
                         />
                     </label>
                     <label>
-                        <span>"Schedule / increase month"</span>
+                        <span>{move || t("Schedule / increase month")}</span>
                         <select
                             class="compact-select"
                             prop:value=move || renewal_month().to_string()
@@ -563,12 +572,12 @@ fn PaycheckRow(state: RwSignal<PlannerState>, id: u32) -> impl IntoView {
                         </select>
                     </label>
                     <p>
-                        "Twice monthly paycheck transfers are scheduled on the 15th and 30th."
+                        {move || t("Twice monthly paycheck transfers are scheduled on the 15th and 30th.")}
                     </p>
                     <div class="bill-danger-zone">
                         <button class="small-button danger" type="button" on:click=move |_| {
                             state.update(|state| state.paychecks.retain(|paycheck| paycheck.id != id));
-                        }>"Delete"</button>
+                        }>{move || t("Delete")}</button>
                     </div>
                 </div>
             </td>
@@ -599,7 +608,7 @@ fn InlineTextCell(
                 <button class="inline-display" type="button" on:click=move |_| editing.set(true)>
                     {move || {
                         let value = value();
-                        if value.trim().is_empty() { "Click to edit".to_string() } else { value }
+                        if value.trim().is_empty() { t("Click to edit").to_string() } else { value }
                     }}
                 </button>
             }.into_any()
@@ -759,14 +768,14 @@ fn InlineFrequencyCell(
                     on:blur=move |_| editing.set(false)
                 >
                     {Frequency::ALL.into_iter().map(|frequency| view! {
-                        <option value=frequency_value(frequency)>{frequency.label()}</option>
+                        <option value=frequency_value(frequency)>{frequency_label(frequency)}</option>
                     }).collect_view()}
                 </select>
             }.into_any()
         } else {
             view! {
                 <button class="inline-display" type="button" on:click=move |_| editing.set(true)>
-                    {move || value().label()}
+                    {move || frequency_label(value())}
                 </button>
             }.into_any()
         }}
@@ -797,10 +806,13 @@ fn relative_date_label(date: Date, today: Date) -> String {
     let delta = date_days(date) - date_days(today);
 
     match delta {
-        0 => "Today".to_string(),
-        1 => "Tomorrow".to_string(),
-        2..=6 => format!("In {delta} days"),
-        7..=13 => "Next week".to_string(),
+        0 => t("Today").to_string(),
+        1 => t("Tomorrow").to_string(),
+        2..=6 => match current_language() {
+            Language::French => format!("Dans {delta} jours"),
+            Language::English => format!("In {delta} days"),
+        },
+        7..=13 => t("Next week").to_string(),
         _ => date.label(),
     }
 }
@@ -880,8 +892,8 @@ fn TrendsView(state: RwSignal<PlannerState>) -> impl IntoView {
         <section class="view active">
             <div class="section-heading">
                 <div>
-                    <h3>"Increase analysis"</h3>
-                    <p>"Compare the latest increase against each bill's historical average."</p>
+                    <h3>{move || t("Increase analysis")}</h3>
+                    <p>{move || t("Compare the latest increase against each bill's historical average.")}</p>
                 </div>
             </div>
             <div class="insight-grid">
@@ -890,10 +902,10 @@ fn TrendsView(state: RwSignal<PlannerState>) -> impl IntoView {
                     let delta = latest - average;
                     view! {
                         <article class="insight-card">
-                            <div class="row-top"><span>{bill.name}</span><span>{format!("{:.1}% forecast", bill.annual_increase)}</span></div>
-                            <div class="row-sub">{format!("Historical average: {:.1}%", average)}</div>
+                            <div class="row-top"><span>{bill.name}</span><span>{format!("{:.1}% {}", bill.annual_increase, t("forecast"))}</span></div>
+                            <div class="row-sub">{format!("{}: {:.1}%", t("Historical average"), average)}</div>
                             <div class={if delta > 1.0 { "row-sub negative" } else if delta < -1.0 { "row-sub positive" } else { "row-sub" }}>
-                                {format!("Latest change: {:.1}%, {:.1} points {} average", latest, delta.abs(), if delta >= 0.0 { "above" } else { "below" })}
+                                {format!("{}: {:.1}%, {:.1} {} {} {}", t("Latest change"), latest, delta.abs(), t("points"), if delta >= 0.0 { t("above") } else { t("below") }, t("average"))}
                             </div>
                         </article>
                     }
@@ -916,13 +928,13 @@ fn SettingsView(
         <section class="view active">
             <div class="settings-grid">
                 <section class="form-panel">
-                    <h3>"Account setup"</h3>
+                    <h3>{move || t("Account setup")}</h3>
                     <SettingsMoney label="Starting balance" value=move || state.get().settings.starting_balance on_input=move |value| state.update(|state| state.settings.starting_balance = value) />
                     <SettingsMoney label="Minimum cash buffer" value=move || state.get().settings.minimum_buffer on_input=move |value| state.update(|state| state.settings.minimum_buffer = value) />
                 </section>
 
                 <section class="form-panel">
-                    <h3>"Forecast controls"</h3>
+                    <h3>{move || t("Forecast controls")}</h3>
                     <SettingsSlider
                         label="Forecast years"
                         value=Signal::derive(move || state.get().settings.forecast_years as f64)
@@ -948,14 +960,14 @@ fn SettingsView(
                 </section>
 
                 <section class="form-panel">
-                    <h3>"Paycheck rules"</h3>
+                    <h3>{move || t("Paycheck rules")}</h3>
                     <SettingsMoney label="Paycheck amount" value=move || state.get().settings.paycheck_amount on_input=move |value| state.update(|state| state.settings.paycheck_amount = value) />
-                    <p>"Used to warn when the recommended transfer would take too much of one paycheck."</p>
+                    <p>{move || t("Used to warn when the recommended transfer would take too much of one paycheck.")}</p>
                 </section>
 
                 <section class="form-panel">
-                    <h3>"Data"</h3>
-                    <p>"Reset the local planner, load demo data, or reopen the introduction."</p>
+                    <h3>{move || t("Data")}</h3>
+                    <p>{move || t("Reset the local planner, load demo data, or reopen the introduction.")}</p>
                     <div class="settings-actions">
                         <button class="secondary-button" type="button" on:click=move |_| {
                             state.update(|planner| {
@@ -964,13 +976,13 @@ fn SettingsView(
                                 planner.onboarding = onboarding;
                             });
                         }>
-                            "Sample"
+                            {move || t("Sample")}
                         </button>
                         <button class="secondary-button" type="button" on:click=move |_| {
                             tutorial_step.set(TutorialStep::Welcome);
                             show_tutorial.set(true);
                         }>
-                            "Show tutorial"
+                            {move || t("Show tutorial")}
                         </button>
                         <button class="secondary-button danger" type="button" on:click=move |_| {
                             state.update(|planner| {
@@ -979,22 +991,22 @@ fn SettingsView(
                                 planner.onboarding = onboarding;
                             });
                         }>
-                            "Clear"
+                            {move || t("Clear")}
                         </button>
                     </div>
                 </section>
 
                 <section class="form-panel ynab-panel">
-                    <h3>"YNAB import"</h3>
-                    <p>"Use a personal access token to import the dedicated recurring-payment account."</p>
+                    <h3>{move || t("YNAB import")}</h3>
+                    <p>{move || t("Use a personal access token to import the dedicated recurring-payment account.")}</p>
                     {move || {
                         if state.get().ynab.access_token.is_empty() || is_editing_token.get() {
                             view! {
                                 <label>
-                                    "Personal access token"
+                                    {move || t("Personal access token")}
                                     <input
                                         type="password"
-                                        placeholder="Paste YNAB token"
+                                        placeholder=move || t("Paste YNAB token")
                                         prop:value=move || state.get().ynab.access_token
                                         on:focus=move |_| is_editing_token.set(true)
                                         on:input=move |event| {
@@ -1008,8 +1020,8 @@ fn SettingsView(
                             view! {
                                 <div class="token-status">
                                     <div>
-                                        <strong>"Token saved"</strong>
-                                        <span>"Stored locally in this browser."</span>
+                                        <strong>{move || t("Token saved")}</strong>
+                                        <span>{move || t("Stored locally in this browser.")}</span>
                                     </div>
                                     <button
                                         class="secondary-button"
@@ -1025,14 +1037,14 @@ fn SettingsView(
                                             });
                                         }
                                     >
-                                        "Forget token"
+                                        {move || t("Forget token")}
                                     </button>
                                 </div>
                             }.into_any()
                         }
                     }}
                     <label>
-                        "Budget"
+                        {move || t("Budget")}
                         <select
                             prop:value=move || state.get().ynab.plan_id.unwrap_or_default()
                             disabled=move || state.get().ynab.available_plans.is_empty()
@@ -1046,14 +1058,14 @@ fn SettingsView(
                                 run_ynab_account_load(state, is_importing);
                             }
                         >
-                            <option value="">"Select budget"</option>
+                            <option value="">{move || t("Select budget")}</option>
                             {move || state.get().ynab.available_plans.into_iter().map(|plan| view! {
                                 <option value=plan.id>{plan.name}</option>
                             }).collect_view()}
                         </select>
                     </label>
                     <label>
-                        "Account"
+                        {move || t("Account")}
                         <select
                             prop:value=move || state.get().ynab.account_id.unwrap_or_default()
                             disabled=move || state.get().ynab.available_accounts.is_empty()
@@ -1067,7 +1079,7 @@ fn SettingsView(
                                 });
                             }
                         >
-                            <option value="">"Select account"</option>
+                            <option value="">{move || t("Select account")}</option>
                             {move || state.get().ynab.available_accounts.into_iter().map(|account| view! {
                                 <option value=account.id>{account.name}</option>
                             }).collect_view()}
@@ -1089,7 +1101,7 @@ fn SettingsView(
                                         disabled=move || is_importing.get()
                                         on:click=move |_| run_ynab_import(state, is_importing)
                                     >
-                                        {move || if is_importing.get() { "Importing..." } else { "Import from YNAB" }}
+                                        {move || if is_importing.get() { t("Importing...") } else { t("Import from YNAB") }}
                                     </button>
                                 }.into_any()
                             } else {
@@ -1100,7 +1112,7 @@ fn SettingsView(
                                         disabled=move || is_importing.get()
                                         on:click=move |_| run_ynab_choice_load(state, is_importing)
                                     >
-                                        {move || if is_importing.get() { "Loading..." } else { "Load Accounts" }}
+                                        {move || if is_importing.get() { t("Loading...") } else { t("Load Accounts") }}
                                     </button>
                                 }.into_any()
                             }
@@ -1108,7 +1120,7 @@ fn SettingsView(
                     </div>
                     <div class="import-status">
                         <strong>{move || state.get().ynab.last_import_status}</strong>
-                        <span>{move || state.get().ynab.last_imported_at.unwrap_or_else(|| "Never imported".to_string())}</span>
+                        <span>{move || state.get().ynab.last_imported_at.unwrap_or_else(|| t("Never imported").to_string())}</span>
                     </div>
                 </section>
             </div>
@@ -1130,28 +1142,28 @@ fn TransactionsView(state: RwSignal<PlannerState>) -> impl IntoView {
                 <section class="table-panel full-span">
                     <div class="section-heading">
                         <div>
-                            <h3>"Transactions"</h3>
-                            <p>"Assign imported transactions to bills, leave them unassigned, mark them non-recurring, or create a bill from the dropdown."</p>
+                    <h3>{move || t("Transactions")}</h3>
+                    <p>{move || t("Assign imported transactions to bills, leave them unassigned, mark them non-recurring, or create a bill from the dropdown.")}</p>
                         </div>
                         <div class="view-controls">
                             <button class="primary-button" type="button" on:click=move |_| {
                                 add_transaction(state);
                                 page.set(0);
                             }>
-                                "Add Transaction"
+                                {move || t("Add Transaction")}
                             </button>
                             <label class="group-select">
-                                <span>"Group"</span>
+                                <span>{move || t("Group")}</span>
                                 <select
-                                    aria-label="Group transactions"
+                                    aria-label=move || t("Group transactions")
                                     prop:value=move || if group_by_bills.get() { "bills" } else { "none" }
                                     on:change=move |event| {
                                         group_by_bills.set(event_target_value(&event) == "bills");
                                         page.set(0);
                                     }
                                 >
-                                    <option value="none">"None"</option>
-                                    <option value="bills">"Bills"</option>
+                                    <option value="none">{move || t("None")}</option>
+                                    <option value="bills">{move || t("Bills")}</option>
                                 </select>
                             </label>
                         </div>
@@ -1207,13 +1219,13 @@ fn TransactionsView(state: RwSignal<PlannerState>) -> impl IntoView {
                 </section>
 
                 <details class="table-panel full-span summary-panel">
-                    <summary>"YNAB transaction summary"</summary>
+                    <summary>{move || t("YNAB transaction summary")}</summary>
                     <div class="metrics-grid compact-metrics">
-                        <Metric label="Recurring" value=move || money(class_total(&state.get(), TransactionClass::Recurring).abs()) note=move || format!("{} matched", class_count(&state.get(), TransactionClass::Recurring)) />
-                        <Metric label="Paycheck Transfers" value=move || money(class_total(&state.get(), TransactionClass::Paycheck).abs()) note=move || format!("{} matched", class_count(&state.get(), TransactionClass::Paycheck)) />
-                        <Metric label="Transfers" value=move || money(class_total(&state.get(), TransactionClass::Transfer)) note=move || format!("{} imported", class_count(&state.get(), TransactionClass::Transfer)) />
-                        <Metric label="No bill" value=move || money(class_total(&state.get(), TransactionClass::Misc).abs()) note=move || format!("{} transactions", class_count(&state.get(), TransactionClass::Misc)) />
-                        <Metric label="Imported" value=move || state.get().transactions.len().to_string() note=|| "transactions".to_string() />
+                        <Metric label="Recurring" value=move || money(class_total(&state.get(), TransactionClass::Recurring).abs()) note=move || format!("{} {}", class_count(&state.get(), TransactionClass::Recurring), t("matched")) />
+                        <Metric label="Paycheck Transfers" value=move || money(class_total(&state.get(), TransactionClass::Paycheck).abs()) note=move || format!("{} {}", class_count(&state.get(), TransactionClass::Paycheck), t("matched")) />
+                        <Metric label="Transfers" value=move || money(class_total(&state.get(), TransactionClass::Transfer)) note=move || format!("{} {}", class_count(&state.get(), TransactionClass::Transfer), t("imported")) />
+                        <Metric label="No bill" value=move || money(class_total(&state.get(), TransactionClass::Misc).abs()) note=move || format!("{} {}", class_count(&state.get(), TransactionClass::Misc), t("transactions")) />
+                        <Metric label="Imported" value=move || state.get().transactions.len().to_string() note=|| t("transactions").to_string() />
                     </div>
                 </details>
             </div>
@@ -1362,7 +1374,7 @@ fn TransactionGroupRows(
     let bills = RwSignal::new(bills);
     let paychecks = RwSignal::new(paychecks);
     let recurring_candidates = RwSignal::new(recurring_candidates);
-    let is_unassigned_group = Memo::new(move |_| name.get() == "Unassigned");
+    let is_unassigned_group = Memo::new(move |_| name.get() == t("Unassigned"));
 
     view! {
         <tr class=move || if is_unassigned_group.get() { "transaction-group-row is-pinned" } else { "transaction-group-row" } data-testid="transaction-group-row">
@@ -1373,20 +1385,20 @@ fn TransactionGroupRows(
                     aria-expanded=move || expanded.get().to_string()
                     aria-label=move || {
                         if expanded.get() {
-                            format!("Collapse {}", name.get())
+                            format!("{} {}", t("Collapse"), name.get())
                         } else {
-                            format!("Expand {}", name.get())
+                            format!("{} {}", t("Expand"), name.get())
                         }
                     }
                     on:click=move |_| expanded.update(|value| *value = !*value)
                 >
                     <span class="group-caret" aria-hidden="true"></span>
                     <span class="group-name">{move || name.get()}</span>
-                    <span class="group-count">{format!("{count} transactions")}</span>
+                    <span class="group-count">{format!("{count} {}", t("transactions"))}</span>
                     <span class="group-recurring">{move || recurring_label.get()}</span>
                     <span class="group-amount">{move || amount_label.get()}</span>
                     <span class="group-pin-note">
-                        {move || if is_unassigned_group.get() { "Pinned last" } else { "" }}
+                        {move || if is_unassigned_group.get() { t("Pinned last") } else { "" }}
                     </span>
                 </button>
             </td>
@@ -1431,15 +1443,15 @@ fn TransactionSortHeader(
                 page.set(0);
             }
         >
-            <span>{label}</span>
+            <span>{move || t(label)}</span>
             <span class="sort-indicator">
                 {move || {
                     if sort_column.get() != column {
                         String::new()
                     } else if sort_ascending.get() {
-                        "Asc".to_string()
+                        t("Asc").to_string()
                     } else {
-                        "Desc".to_string()
+                        t("Desc").to_string()
                     }
                 }}
             </span>
@@ -1482,7 +1494,7 @@ fn TransactionRow(
                 <button
                     class="bill-expand-button"
                     type="button"
-                    aria-label=move || if expanded.get() { "Hide transaction details" } else { "Show transaction details" }
+                    aria-label=move || if expanded.get() { t("Hide transaction details") } else { t("Show transaction details") }
                     aria-expanded=move || expanded.get().to_string()
                     on:click=move |_| expanded.update(|value| *value = !*value)
                 ></button>
@@ -1496,7 +1508,7 @@ fn TransactionRow(
             <td class="transaction-bill-cell">
                 <select
                     class="ledger-select"
-                    aria-label="Bills and paycheck transfers"
+                    aria-label=move || t("Bills and paycheck transfers")
                     prop:value=move || {
                         transaction
                             .get()
@@ -1513,15 +1525,15 @@ fn TransactionRow(
                         update_transaction_bill_assignment(state, select_id.get_untracked(), event_target_value(&event));
                     }
                 >
-                    <option value=BILL_SELECT_UNASSIGNED>"Unassigned"</option>
-                    <option value=BILL_SELECT_NON_RECURRING>"Non-Recurring"</option>
+                    <option value=BILL_SELECT_UNASSIGNED>{move || t("Unassigned")}</option>
+                    <option value=BILL_SELECT_NON_RECURRING>{move || t("Non-Recurring")}</option>
                     {bills.iter().filter(|bill| is_assignable_bill(bill)).map(|bill| view! {
                         <option value=format!("bill:{}", bill.id)>{bill.name.clone()}</option>
                     }).collect_view()}
                     {paychecks.iter().filter(|paycheck| is_assignable_bill(paycheck)).map(|paycheck| view! {
-                        <option value=format!("{PAYCHECK_SELECT_PREFIX}{}", paycheck.id)>{format!("Paycheck Transfer: {}", paycheck.name)}</option>
+                        <option value=format!("{PAYCHECK_SELECT_PREFIX}{}", paycheck.id)>{format!("{}: {}", t("Paycheck Transfer"), paycheck.name)}</option>
                     }).collect_view()}
-                    <option value=BILL_SELECT_CREATE>"Create Bill"</option>
+                    <option value=BILL_SELECT_CREATE>{move || t("Create Bill")}</option>
                 </select>
             </td>
             <td class="recurring-cell">
@@ -1550,14 +1562,14 @@ fn TransactionRow(
             <td colspan="4">
                 <div class="transaction-detail-fields">
                     <div>
-                        <span>"Payee"</span>
+                        <span>{move || t("Payee")}</span>
                         <InlineTextCell
                             value=move || transaction.get().map(|transaction| transaction.payee_name).unwrap_or_default()
                             on_input=move |value| update_transaction(state, payee_id.get_untracked(), |transaction| transaction.payee_name = value)
                         />
                     </div>
                     <div>
-                        <span>"Memo"</span>
+                        <span>{move || t("Memo")}</span>
                         <InlineTextCell
                             value=move || transaction.get().map(|transaction| transaction.memo).unwrap_or_default()
                             on_input=move |value| update_transaction(state, memo_id.get_untracked(), |transaction| transaction.memo = value)
@@ -1569,7 +1581,7 @@ fn TransactionRow(
                             type="button"
                             on:click=move |_| delete_transaction(state, delete_id.get_untracked())
                         >
-                            "Delete"
+                            {move || t("Delete")}
                         </button>
                     </div>
                 </div>
@@ -1586,12 +1598,12 @@ fn PaginationControls(page: RwSignal<usize>, total_items: usize) -> impl IntoVie
             <span>
                 {move || {
                     if total_items == 0 {
-                        "No transactions".to_string()
+                        t("No transactions").to_string()
                     } else {
                         let current_page = page.get().min(total_pages.saturating_sub(1));
                         let start = current_page * TRANSACTIONS_PER_PAGE + 1;
                         let end = ((current_page + 1) * TRANSACTIONS_PER_PAGE).min(total_items);
-                        format!("{start}-{end} of {total_items}")
+                        format!("{start}-{end} {} {total_items}", t("of"))
                     }
                 }}
             </span>
@@ -1602,7 +1614,7 @@ fn PaginationControls(page: RwSignal<usize>, total_items: usize) -> impl IntoVie
                     disabled=move || page.get() == 0
                     on:click=move |_| page.update(|page| *page = page.saturating_sub(1))
                 >
-                    "Previous"
+                    {move || t("Previous")}
                 </button>
                 <button
                     class="icon-button"
@@ -1614,7 +1626,7 @@ fn PaginationControls(page: RwSignal<usize>, total_items: usize) -> impl IntoVie
                         }
                     })
                 >
-                    "Next"
+                    {move || t("Next")}
                 </button>
             </div>
         </div>
@@ -1731,7 +1743,7 @@ fn group_transactions_by_category(
 }
 
 fn group_sort_key(name: &str) -> (u8, String) {
-    if name == "Unassigned" {
+    if name == t("Unassigned") {
         (1, String::new())
     } else {
         (0, name.to_lowercase())
@@ -1786,11 +1798,11 @@ fn transaction_bill_sort_label(
                 .iter()
                 .any(|paycheck| paycheck.id == paycheck_id && is_assignable_bill(paycheck))
             {
-                return "Paycheck Transfers".to_string();
+                return t("Paycheck Transfers").to_string();
             }
         }
 
-        return "Paycheck Transfers".to_string();
+        return t("Paycheck Transfers").to_string();
     }
 
     if let Some(bill_id) = transaction.matched_bill_id {
@@ -1808,7 +1820,7 @@ fn transaction_bill_sort_label(
     } else if bill_id_for_category(bills, &category).is_some() {
         category
     } else {
-        "Unassigned".to_string()
+        t("Unassigned").to_string()
     }
 }
 
@@ -1819,7 +1831,7 @@ fn transaction_recurring_label(
     recurring_candidates: &[RecurringCandidate],
 ) -> String {
     if normalize_category_name(&transaction.category_name) == NON_RECURRING_CATEGORY {
-        return "Non-recurring".to_string();
+        return t("Non-recurring").to_string();
     }
 
     if let Some(bill_id) = transaction.matched_bill_id {
@@ -1828,7 +1840,7 @@ fn transaction_recurring_label(
                 .iter()
                 .find(|paycheck| paycheck.id == bill_id && is_assignable_bill(paycheck))
             {
-                return paycheck.frequency.label().to_string();
+                return frequency_label(paycheck.frequency).to_string();
             }
         }
 
@@ -1836,7 +1848,7 @@ fn transaction_recurring_label(
             .iter()
             .find(|bill| bill.id == bill_id && is_assignable_bill(bill))
         {
-            return bill.frequency.label().to_string();
+            return frequency_label(bill.frequency).to_string();
         }
     }
 
@@ -1845,11 +1857,11 @@ fn transaction_recurring_label(
         is_assignable_bill(bill)
             && normalize_name_for_ui(&bill.name) == normalize_name_for_ui(&category)
     }) {
-        return bill.frequency.label().to_string();
+        return frequency_label(bill.frequency).to_string();
     }
 
     if transaction.manual_classification == Some(TransactionClass::Misc) {
-        return "Unassigned".to_string();
+        return t("Unassigned").to_string();
     }
 
     if let Some(candidate) = recurring_candidates
@@ -1860,14 +1872,14 @@ fn transaction_recurring_label(
     }
 
     if transaction.classification == TransactionClass::Recurring {
-        return "Recurring".to_string();
+        return t("Recurring").to_string();
     }
 
     if transaction.classification == TransactionClass::Paycheck {
-        return "Paycheck Transfer".to_string();
+        return t("Paycheck Transfer").to_string();
     }
 
-    "Unassigned".to_string()
+    t("Unassigned").to_string()
 }
 
 fn transaction_group_recurring_label(
@@ -1886,7 +1898,7 @@ fn transaction_group_recurring_label(
         .map(|transaction| {
             transaction_recurring_label(transaction, bills, paychecks, recurring_candidates)
         })
-        .unwrap_or_else(|| "Unassigned".to_string())
+        .unwrap_or_else(|| t("Unassigned").to_string())
 }
 
 fn transaction_group_amount_label(
@@ -1900,7 +1912,7 @@ fn transaction_group_amount_label(
         .filter(|transaction| {
             let label =
                 transaction_recurring_label(transaction, bills, paychecks, recurring_candidates);
-            label != "Unassigned" && label != "Non-recurring"
+            label != t("Unassigned") && label != t("Non-recurring")
         })
         .max_by(|left, right| {
             left.date
@@ -1912,7 +1924,7 @@ fn transaction_group_amount_label(
 }
 
 fn cadence_label(cadence: RecurringCadence) -> &'static str {
-    match cadence {
+    t(match cadence {
         RecurringCadence::Weekly => "Weekly",
         RecurringCadence::Biweekly => "Biweekly",
         RecurringCadence::Semimonthly => "Twice monthly",
@@ -1920,7 +1932,17 @@ fn cadence_label(cadence: RecurringCadence) -> &'static str {
         RecurringCadence::Quarterly => "Quarterly",
         RecurringCadence::Yearly => "Yearly",
         RecurringCadence::Irregular => "Irregular",
-    }
+    })
+}
+
+fn frequency_label(frequency: Frequency) -> &'static str {
+    t(match frequency {
+        Frequency::Biweekly => "Biweekly",
+        Frequency::Semimonthly => "Twice monthly",
+        Frequency::Monthly => "Monthly",
+        Frequency::Quarterly => "Quarterly",
+        Frequency::Yearly => "Yearly",
+    })
 }
 
 fn normalize_category_name(category_name: &str) -> String {
@@ -1957,7 +1979,7 @@ fn SettingsMoney(
 ) -> impl IntoView {
     view! {
         <label>
-            {label}
+            {move || t(label)}
             <input
                 type="text"
                 inputmode="decimal"
@@ -1984,7 +2006,7 @@ fn SettingsSlider(
 ) -> impl IntoView {
     view! {
         <label class="settings-slider">
-            <span>{label}</span>
+            <span>{move || t(label)}</span>
             <input
                 type="range"
                 prop:min=min
@@ -1993,7 +2015,7 @@ fn SettingsSlider(
                 prop:value=move || value.get()
                 on:input=move |event| on_input(event_target_value(&event).parse::<f64>().unwrap_or(min))
             />
-            <strong>{move || format!("{:.0}{}", value.get(), suffix)}</strong>
+            <strong>{move || format!("{:.0}{}", value.get(), t(suffix))}</strong>
         </label>
     }
 }
@@ -2008,14 +2030,17 @@ enum ViewName {
 }
 
 impl ViewName {
-    fn label(self) -> &'static str {
-        match self {
-            ViewName::Dashboard => "Dashboard",
-            ViewName::Bills => "Bills",
-            ViewName::Transactions => "Transactions",
-            ViewName::Trends => "Trends",
-            ViewName::Settings => "Settings",
-        }
+    fn label(self, language: Language) -> &'static str {
+        tr(
+            language,
+            match self {
+                ViewName::Dashboard => "Dashboard",
+                ViewName::Bills => "Bills",
+                ViewName::Transactions => "Transactions",
+                ViewName::Trends => "Trends",
+                ViewName::Settings => "Settings",
+            },
+        )
     }
 
     fn icon(self) -> &'static str {
@@ -2153,6 +2178,250 @@ impl TutorialStep {
 
 fn complete_tutorial(state: RwSignal<PlannerState>) {
     state.update(|state| state.onboarding.introduction_done = true);
+}
+
+fn current_language() -> Language {
+    use_context::<RwSignal<Language>>()
+        .map(|language| language.get())
+        .unwrap_or(Language::English)
+}
+
+fn t(key: &'static str) -> &'static str {
+    tr(current_language(), key)
+}
+
+fn tr(language: Language, key: &'static str) -> &'static str {
+    if language == Language::English {
+        return key;
+    }
+
+    match key {
+        "Account" => "Compte",
+        "Account setup" => "Configuration du compte",
+        "Actual balance" => "Solde reel",
+        "Adaptive transfers keep the account near the required reserve instead of accumulating excess cash." => {
+            "Les virements adaptatifs gardent le compte pres de la reserve requise au lieu d'accumuler trop d'argent."
+        }
+        "Add Bill" => "Ajouter une facture",
+        "Add paycheck amount" => "Ajouter le montant de la paie",
+        "Add Transaction" => "Ajouter une transaction",
+        "Amount" => "Montant",
+        "Annual increase" => "Augmentation annuelle",
+        "Asc" => "Asc",
+        "Back" => "Retour",
+        "Balance and activity" => "Solde et activite",
+        "Biweekly" => "Aux deux semaines",
+        "Bills" => "Factures",
+        "Bills and paycheck transfers" => "Factures et virements de paie",
+        "Bills / Paycheck Transfers" => "Factures / virements de paie",
+        "Budget" => "Budget",
+        "buffer floor" => "plancher du coussin",
+        "Clear" => "Effacer",
+        "Click to edit" => "Cliquer pour modifier",
+        "Click any value to edit it. Expand a row for schedule and increase details." => {
+            "Cliquez une valeur pour la modifier. Ouvrez une ligne pour voir l'echeancier et les details d'augmentation."
+        }
+        "Compare the latest increase against each bill's historical average." => {
+            "Comparez la derniere augmentation avec la moyenne historique de chaque facture."
+        }
+        "Collapse" => "Reduire",
+        "Collapse sidebar" => "Reduire le menu",
+        "Create Bill" => "Creer une facture",
+        "Dashboard" => "Tableau de bord",
+        "Data" => "Donnees",
+        "Date" => "Date",
+        "Delete" => "Supprimer",
+        "Desc" => "Desc",
+        "Expand" => "Agrandir",
+        "Expand sidebar" => "Agrandir le menu",
+        "Expected increase" => "Augmentation prevue",
+        "Finish" => "Terminer",
+        "For yearly and quarterly bills, this month anchors the payment schedule. For monthly bills, it is when yearly increases begin in the projection." => {
+            "Pour les factures annuelles et trimestrielles, ce mois ancre l'echeancier. Pour les factures mensuelles, il indique quand les augmentations annuelles commencent dans la projection."
+        }
+        "Forecast" => "Prevision",
+        "Forecast controls" => "Parametres de prevision",
+        "Forecast years" => "Annees de prevision",
+        "forecast" => "prevu",
+        "Forget token" => "Oublier le jeton",
+        "Frequency" => "Frequence",
+        "Group" => "Grouper",
+        "Group transactions" => "Grouper les transactions",
+        "Hide advanced bill fields" => "Masquer les details de la facture",
+        "Hide paycheck transfer details" => "Masquer les details du virement de paie",
+        "Hide transaction details" => "Masquer les details de la transaction",
+        "Historical average" => "Moyenne historique",
+        "Import from YNAB" => "Importer depuis YNAB",
+        "Importing..." => "Importation...",
+        "Imported" => "Importees",
+        "imported" => "importees",
+        "Inflow" => "Entrees",
+        "Increase analysis" => "Analyse des augmentations",
+        "Irregular" => "Irregulier",
+        "Latest change" => "Dernier changement",
+        "left after transfer" => "restants apres virement",
+        "Load Accounts" => "Charger les comptes",
+        "Loading..." => "Chargement...",
+        "Lowest projected balance" => "Solde projete le plus bas",
+        "matched" => "associees",
+        "Memo" => "Memo",
+        "Minimum cash buffer" => "Coussin minimal",
+        "Monthly" => "Mensuel",
+        "Name" => "Nom",
+        "Never imported" => "Jamais importe",
+        "Next" => "Suivant",
+        "Next date" => "Prochaine date",
+        "Next due date" => "Prochaine echeance",
+        "Next paycheck" => "Prochaine paie",
+        "Next week" => "La semaine prochaine",
+        "No bill" => "Aucune facture",
+        "No imported transactions in the past year" => "Aucune transaction importee dans la derniere annee",
+        "No recurring paycheck transfers detected yet." => "Aucun virement de paie recurrent detecte pour l'instant.",
+        "No transactions" => "Aucune transaction",
+        "Non-recurring" => "Non recurrent",
+        "Non-Recurring" => "Non recurrent",
+        "None" => "Aucun",
+        "of" => "sur",
+        "on" => "le",
+        "Outflow" => "Sorties",
+        "Past 12 months" => "12 derniers mois",
+        "Paycheck amount" => "Montant de la paie",
+        "Paycheck pressure" => "Pression sur la paie",
+        "Paycheck rules" => "Regles de paie",
+        "Payee" => "Beneficiaire",
+        "Paycheck Transfer" => "Virement de paie",
+        "Paycheck Transfers" => "Virements de paie",
+        "Personal access token" => "Jeton d'acces personnel",
+        "Pinned last" => "Epingle a la fin",
+        "points" => "points",
+        "Previous" => "Precedent",
+        "Projected balance" => "Solde projete",
+        "Quarterly" => "Trimestriel",
+        "Recurring" => "Recurrent",
+        "Recurring account planner" => "Planificateur de compte recurrent",
+        "Recurring incoming transfers detected from transactions." => "Virements entrants recurrents detectes a partir des transactions.",
+        "Recurring payments" => "Paiements recurrents",
+        "Reset the local planner, load demo data, or reopen the introduction." => {
+            "Reinitialisez le plan local, chargez des donnees demo ou rouvrez l'introduction."
+        }
+        "Safety margin" => "Marge de securite",
+        "Sample" => "Exemple",
+        "Schedule / increase month" => "Mois d'echeance / d'augmentation",
+        "Select account" => "Choisir un compte",
+        "Select budget" => "Choisir un budget",
+        "Settings" => "Parametres",
+        "Short by" => "Manque de",
+        "Show tutorial" => "Afficher le tutoriel",
+        "Show advanced bill fields" => "Afficher les details de la facture",
+        "Show paycheck transfer details" => "Afficher les details du virement de paie",
+        "Show transaction details" => "Afficher les details de la transaction",
+        "Skip introduction" => "Passer l'introduction",
+        "Start manually" => "Commencer manuellement",
+        "Start with YNAB" => "Commencer avec YNAB",
+        "Starting balance" => "Solde de depart",
+        "Step" => "Etape",
+        "Stored locally in this browser." => "Enregistre localement dans ce navigateur.",
+        "% per transfer" => "% par virement",
+        " years" => " ans",
+        "Token saved" => "Jeton enregistre",
+        "Today" => "Aujourd'hui",
+        "Tomorrow" => "Demain",
+        "to stay afloat" => "pour rester a flot",
+        "Transactions" => "Transactions",
+        "transactions" => "transactions",
+        "Transfers" => "Virements",
+        "Trends" => "Tendances",
+        "Twice monthly" => "Deux fois par mois",
+        "Twice monthly paycheck transfers are scheduled on the 15th and 30th." => {
+            "Les virements de paie deux fois par mois sont planifies le 15 et le 30."
+        }
+        "Unassigned" => "Non assignee",
+        "Upcoming payments" => "Paiements a venir",
+        "Use a personal access token to import the dedicated recurring-payment account." => {
+            "Utilisez un jeton d'acces personnel pour importer le compte dedie aux paiements recurrents."
+        }
+        "Used to warn when the recommended transfer would take too much of one paycheck." => {
+            "Utilise pour avertir lorsque le virement recommande prendrait trop d'une paie."
+        }
+        "YNAB import" => "Import YNAB",
+        "YNAB transaction summary" => "Sommaire des transactions YNAB",
+        "Very high transfer" => "Virement tres eleve",
+        "Weekly" => "Hebdomadaire",
+        "Welcome to Payflow Forecast" => "Bienvenue dans Payflow Forecast",
+        "Yearly" => "Annuel",
+        "above" => "au-dessus de la",
+        "after payment" => "apres paiement",
+        "average" => "moyenne",
+        "below" => "sous la",
+        "This short introduction explains the app and the two normal ways to start: import from YNAB, or enter bills and paycheck transfers manually." => {
+            "Cette courte introduction explique l'application et les deux facons de commencer: importer depuis YNAB, ou saisir les factures et virements de paie manuellement."
+        }
+        "Assign imported transactions to bills, leave them unassigned, mark them non-recurring, or create a bill from the dropdown." => {
+            "Assignez les transactions importees aux factures, laissez-les non assignees, marquez-les non recurrentes ou creez une facture depuis la liste."
+        }
+        "The dashboard shows whether the recurring-payment account can stay above your minimum cash buffer. The chart combines real history with the five-year forecast so low points stand out visually." => {
+            "Le tableau de bord montre si le compte de paiements recurrents peut rester au-dessus du coussin minimal. Le graphique combine l'historique reel avec la prevision sur cinq ans pour faire ressortir les creux."
+        }
+        "The Bills page is where recurring outflows and Paycheck Transfers live. Review the detected list after import, or create rows here when entering the plan yourself." => {
+            "La page Factures contient les sorties recurrentes et les virements de paie. Revisez la liste detectee apres l'import, ou creez des lignes ici pour une saisie manuelle."
+        }
+        "The Transactions page lets you review imported activity, assign a transaction to a bill, mark it non-recurring, or create a bill from a transaction when the detector missed something." => {
+            "La page Transactions permet de reviser l'activite importee, d'assigner une transaction a une facture, de la marquer non recurrente, ou de creer une facture lorsqu'une detection manque quelque chose."
+        }
+        "Trends helps compare historical bill changes against the app forecast, especially when yearly renewals or price increases start to drift from expectation." => {
+            "Tendances aide a comparer les changements historiques des factures avec la prevision, surtout lorsque les renouvellements annuels ou les hausses s'ecartent des attentes."
+        }
+        "Settings controls the starting balance, minimum buffer, safety margin, paycheck amount, data reset, and YNAB connection." => {
+            "Les parametres controlent le solde de depart, le coussin minimal, la marge de securite, le montant de la paie, les donnees et la connexion YNAB."
+        }
+        "To import from YNAB, paste your personal access token in Settings, load accounts, choose the budget and target account, then import. After import, review Bills and Transactions." => {
+            "Pour importer depuis YNAB, collez votre jeton dans Parametres, chargez les comptes, choisissez le budget et le compte cible, puis importez. Ensuite, revisez Factures et Transactions."
+        }
+        "To start without YNAB, open Bills, add recurring bills and Paycheck Transfers, then confirm Settings. The dashboard will forecast from those entries." => {
+            "Pour commencer sans YNAB, ouvrez Factures, ajoutez les factures recurrentes et les virements de paie, puis confirmez les Parametres. Le tableau de bord prevoira a partir de ces entrees."
+        }
+        "Existing users" => "Utilisateurs existants",
+        "What to watch" => "A surveiller",
+        "Most important review" => "Revision la plus importante",
+        "Correction flow" => "Flux de correction",
+        "Use later" => "A utiliser plus tard",
+        "Do this early" => "A faire tot",
+        "Recommended path" => "Parcours recommande",
+        "No import needed" => "Aucun import requis",
+        "Use Skip introduction if you already know the app. You can reopen this tutorial from Settings." => {
+            "Utilisez Passer l'introduction si vous connaissez deja l'application. Vous pourrez rouvrir ce tutoriel dans Parametres."
+        }
+        "Lowest projected balance and recommended transfer are the key numbers." => "Le solde projete le plus bas et le virement recommande sont les chiffres cles.",
+        "Every recurring payment should have a clean bill row with amount, next due date, and frequency." => {
+            "Chaque paiement recurrent devrait avoir une ligne de facture claire avec montant, prochaine echeance et frequence."
+        }
+        "The Bills dropdown is the source of truth for whether a transaction belongs to a recurring bill." => {
+            "La liste deroulante Factures est la reference pour savoir si une transaction appartient a une facture recurrente."
+        }
+        "This becomes more useful once you have imported or entered enough history." => "Cela devient plus utile apres avoir importe ou saisi assez d'historique.",
+        "Set the starting balance and minimum buffer before trusting the forecast." => "Reglez le solde de depart et le coussin minimal avant de vous fier a la prevision.",
+        "The token stays in this browser's local storage. Review the imported bills before relying on the forecast." => {
+            "Le jeton reste dans le stockage local de ce navigateur. Revisez les factures importees avant de vous fier a la prevision."
+        }
+        "Manual setup is enough for forecasting, but you will not get transaction history until you import." => {
+            "La configuration manuelle suffit pour prevoir, mais l'historique des transactions exige un import."
+        }
+        _ => key,
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn detect_language() -> Language {
+    web_sys::window()
+        .and_then(|window| window.navigator().language())
+        .filter(|language| language.to_lowercase().starts_with("fr"))
+        .map(|_| Language::French)
+        .unwrap_or(Language::English)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn detect_language() -> Language {
+    Language::English
 }
 
 fn add_bill(state: RwSignal<PlannerState>) {
@@ -2735,14 +3004,16 @@ fn chart_svg(
     let forecast_bar_width =
         ((chart_right - today_x) / forecast.daily.len().max(1) as f64).clamp(1.0, 4.0);
     let past_year_label = (forecast_start.year - 1).to_string();
-    let today_label = format!("Today {}", forecast_start.year);
+    let today_label = format!("{} {}", t("Today"), forecast_start.year);
     let forecast_year_label = forecast_end.year.to_string();
     let low_point_day = date_days(forecast.low_point.date);
     let low_point_x = x_for_day(low_point_day);
     let low_point_y = y(forecast.low_point.balance);
     let low_point_label = format!(
-        "Lowest projected balance: {} on {}",
+        "{}: {} {} {}",
+        t("Lowest projected balance"),
         money(forecast.low_point.balance),
+        t("on"),
         forecast.low_point.date.label()
     );
     let tooltip_width = 236.0;
@@ -2788,7 +3059,7 @@ fn chart_svg(
                     }
                 }).collect_view()}
                 {if actual_path.is_empty() {
-                    view! { <text x={chart_left + 14.0} y={top + 32.0} fill="#68717a" font-size="13">"No imported transactions in the past year"</text> }.into_any()
+                    view! { <text x={chart_left + 14.0} y={top + 32.0} fill="#68717a" font-size="13">{t("No imported transactions in the past year")}</text> }.into_any()
                 } else {
                     view! { <path d=actual_path fill="none" stroke="#4f6f52" stroke-width="3" vector-effect="non-scaling-stroke"></path> }.into_any()
                 }}
@@ -2800,17 +3071,17 @@ fn chart_svg(
                     </circle>
                     <g class="chart-tooltip">
                         <rect x=tooltip_x y=tooltip_y width=tooltip_width height="48" rx="7"></rect>
-                        <text x={tooltip_x + 12.0} y={tooltip_y + 19.0}>"Lowest projected balance"</text>
+                        <text x={tooltip_x + 12.0} y={tooltip_y + 19.0}>{t("Lowest projected balance")}</text>
                         <text class="chart-tooltip-value" x={tooltip_x + 12.0} y={tooltip_y + 37.0}>
-                            {format!("{} on {}", money(forecast.low_point.balance), forecast.low_point.date.label())}
+                            {format!("{} {} {}", money(forecast.low_point.balance), t("on"), forecast.low_point.date.label())}
                         </text>
                     </g>
                 </g>
-                <text x=chart_left y="20" fill="#1b1f23" font-size="13" font-weight="700">"Past 12 months"</text>
-                <text x={today_x + 12.0} y="20" fill="#1b1f23" font-size="13" font-weight="700">"Forecast"</text>
+                <text x=chart_left y="20" fill="#1b1f23" font-size="13" font-weight="700">{t("Past 12 months")}</text>
+                <text x={today_x + 12.0} y="20" fill="#1b1f23" font-size="13" font-weight="700">{t("Forecast")}</text>
                 <text x="14" y={y(max_balance)} fill="#68717a" font-size="12">{money(max_balance)}</text>
                 <text x="14" y={y(min_balance)} fill="#68717a" font-size="12">{money(min_balance)}</text>
-                <text x={chart_right - 8.0} y={y(floor) - 7.0} text-anchor="end" fill="#087f7a" font-size="12">"buffer floor"</text>
+                <text x={chart_right - 8.0} y={y(floor) - 7.0} text-anchor="end" fill="#087f7a" font-size="12">{t("buffer floor")}</text>
                 <text x=chart_left y={height - 20.0} fill="#68717a" font-size="12" font-weight="700">{past_year_label}</text>
                 <text x=today_x y={height - 20.0} text-anchor="middle" fill="#1b1f23" font-size="12" font-weight="800">{today_label}</text>
                 <text x=chart_right y={height - 20.0} text-anchor="end" fill="#68717a" font-size="12" font-weight="700">{forecast_year_label}</text>
@@ -2890,7 +3161,7 @@ fn parse_frequency(value: &str) -> Frequency {
 fn paycheck_pressure_value(state: &PlannerState, transfer: f64) -> String {
     let paycheck = state.settings.paycheck_amount;
     if paycheck <= 0.0 {
-        return "Set paycheck".to_string();
+        return t("Set paycheck").to_string();
     }
 
     format!("{:.1}%", (transfer / paycheck) * 100.0)
@@ -2899,15 +3170,19 @@ fn paycheck_pressure_value(state: &PlannerState, transfer: f64) -> String {
 fn paycheck_pressure_note(state: &PlannerState, transfer: f64) -> String {
     let paycheck = state.settings.paycheck_amount;
     if paycheck <= 0.0 {
-        return "Add paycheck amount".to_string();
+        return t("Add paycheck amount").to_string();
     }
 
     if transfer > paycheck {
-        format!("Short by {}", money(transfer - paycheck))
+        format!("{} {}", t("Short by"), money(transfer - paycheck))
     } else if transfer > paycheck * 0.8 {
-        "Very high transfer".to_string()
+        t("Very high transfer").to_string()
     } else {
-        format!("{} left after transfer", money(paycheck - transfer))
+        format!(
+            "{} {}",
+            money(paycheck - transfer),
+            t("left after transfer")
+        )
     }
 }
 
@@ -2917,10 +3192,10 @@ fn recommended_transfer_value(forecast: &Forecast, state: &PlannerState, transfe
 
 fn recommended_transfer_note(forecast: &Forecast, state: &PlannerState) -> String {
     let Some(add_on) = shortfall_add_on_per_paycheck(forecast, state) else {
-        return "Next paycheck".to_string();
+        return t("Next paycheck").to_string();
     };
 
-    format!("+{} to stay afloat", money(add_on))
+    format!("+{} {}", money(add_on), t("to stay afloat"))
 }
 
 fn shortfall_add_on_per_paycheck(forecast: &Forecast, state: &PlannerState) -> Option<f64> {

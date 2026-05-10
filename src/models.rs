@@ -19,16 +19,6 @@ impl Frequency {
         Frequency::Quarterly,
         Frequency::Yearly,
     ];
-
-    pub fn label(self) -> &'static str {
-        match self {
-            Frequency::Biweekly => "Biweekly",
-            Frequency::Semimonthly => "Twice monthly",
-            Frequency::Monthly => "Monthly",
-            Frequency::Quarterly => "Quarterly",
-            Frequency::Yearly => "Yearly",
-        }
-    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

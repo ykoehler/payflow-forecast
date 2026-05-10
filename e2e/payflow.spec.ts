@@ -310,6 +310,25 @@ test("can reopen the tutorial from Settings", async ({ page }) => {
   await expect(page.getByRole("dialog")).toContainText("Welcome to Payflow Forecast");
 });
 
+test.describe("French browser locale", () => {
+  test.use({ locale: "fr-CA" });
+
+  test("auto-detects French from browser preferences", async ({ page }) => {
+    await page.goto("./");
+
+    await expect(page.getByRole("dialog")).toContainText("Bienvenue dans Payflow Forecast");
+    await page.getByRole("button", { name: "Passer l'introduction" }).click();
+
+    await expect(page.getByRole("heading", { name: "Tableau de bord" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Factures" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Parametres" }).click();
+    await expect(page.locator(".topbar h2")).toHaveText("Parametres");
+    await expect(page.getByLabel("Jeton d'acces personnel")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Charger les comptes" })).toBeVisible();
+  });
+});
+
 test("imports YNAB data and turns recurring activity into bills, paycheck transfers, and unassigned transactions", async ({ page }) => {
   await mockYnabApi(page);
   await openApp(page);
