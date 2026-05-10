@@ -1074,22 +1074,37 @@ fn SettingsView(
                         </select>
                     </label>
                     <div class="ynab-actions">
-                        <button
-                            class="secondary-button"
-                            type="button"
-                            disabled=move || is_importing.get()
-                            on:click=move |_| run_ynab_choice_load(state, is_importing)
-                        >
-                            "Load Accounts"
-                        </button>
-                        <button
-                            class="primary-button"
-                            type="button"
-                            disabled=move || is_importing.get()
-                            on:click=move |_| run_ynab_import(state, is_importing)
-                        >
-                            {move || if is_importing.get() { "Importing..." } else { "Import from YNAB" }}
-                        </button>
+                        {move || {
+                            let choices_loaded = {
+                                let snapshot = state.get();
+                                !snapshot.ynab.available_plans.is_empty()
+                                    && !snapshot.ynab.available_accounts.is_empty()
+                            };
+
+                            if choices_loaded {
+                                view! {
+                                    <button
+                                        class="primary-button"
+                                        type="button"
+                                        disabled=move || is_importing.get()
+                                        on:click=move |_| run_ynab_import(state, is_importing)
+                                    >
+                                        {move || if is_importing.get() { "Importing..." } else { "Import from YNAB" }}
+                                    </button>
+                                }.into_any()
+                            } else {
+                                view! {
+                                    <button
+                                        class="primary-button"
+                                        type="button"
+                                        disabled=move || is_importing.get()
+                                        on:click=move |_| run_ynab_choice_load(state, is_importing)
+                                    >
+                                        {move || if is_importing.get() { "Loading..." } else { "Load Accounts" }}
+                                    </button>
+                                }.into_any()
+                            }
+                        }}
                     </div>
                     <div class="import-status">
                         <strong>{move || state.get().ynab.last_import_status}</strong>
