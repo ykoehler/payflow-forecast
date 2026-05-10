@@ -2782,19 +2782,32 @@ fn add_paycheck(state: RwSignal<PlannerState>) {
             .max()
             .unwrap_or(0)
             + 1;
-        let today = Date::today();
+        let next_thursday = next_thursday_after(Date::today());
         state.paychecks.push(Bill {
             id,
             name: "Paycheck transfer".to_string(),
             amount: 1000.0,
-            due_day: today.day,
-            frequency: Frequency::Semimonthly,
+            due_day: next_thursday.day,
+            frequency: Frequency::Biweekly,
             annual_increase: 0.0,
-            renewal_month: today.month,
-            anchor_date: Some(date_input_value(today)),
+            renewal_month: next_thursday.month,
+            anchor_date: Some(date_input_value(next_thursday)),
             history: Vec::new(),
         });
     });
+}
+
+fn next_thursday_after(mut date: Date) -> Date {
+    loop {
+        date = date.next_day();
+        if weekday_index(date) == 4 {
+            return date;
+        }
+    }
+}
+
+fn weekday_index(date: Date) -> i64 {
+    (date_days(date) + 4).rem_euclid(7)
 }
 
 fn add_transaction(state: RwSignal<PlannerState>) {
@@ -4536,10 +4549,10 @@ mod tests {
     use super::{
         actual_balance_points, apply_recurring_candidates, classify_transaction, days_from_civil,
         detect_recurring_candidates, group_transactions_by_category, merge_transaction_corrections,
-        next_bill_due_date, normalize_category_name, parse_money, paydays_before,
-        recommended_transfer_note, recommended_transfer_value, refresh_recurring_detection,
-        shortfall_add_on_per_paycheck, sort_transactions_by_date, sync_detected_bills,
-        transaction_bill_select_value, transaction_group_amount_label,
+        next_bill_due_date, next_thursday_after, normalize_category_name, parse_money,
+        paydays_before, recommended_transfer_note, recommended_transfer_value,
+        refresh_recurring_detection, shortfall_add_on_per_paycheck, sort_transactions_by_date,
+        sync_detected_bills, transaction_bill_select_value, transaction_group_amount_label,
         transaction_group_recurring_label, transaction_recurring_label, TransactionSortColumn,
         YnabTransaction,
     };
@@ -5339,6 +5352,34 @@ mod tests {
                 year: 2026,
                 month: 5,
                 day: 17,
+            }
+        );
+    }
+
+    #[test]
+    fn next_thursday_after_picks_the_following_thursday() {
+        assert_eq!(
+            next_thursday_after(Date {
+                year: 2026,
+                month: 5,
+                day: 10,
+            }),
+            Date {
+                year: 2026,
+                month: 5,
+                day: 14,
+            }
+        );
+        assert_eq!(
+            next_thursday_after(Date {
+                year: 2026,
+                month: 5,
+                day: 14,
+            }),
+            Date {
+                year: 2026,
+                month: 5,
+                day: 21,
             }
         );
     }
