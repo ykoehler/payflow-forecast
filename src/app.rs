@@ -359,8 +359,24 @@ fn Dashboard(
                 <div class="metrics-grid">
                     <Metric
                         label="Recommended transfer"
-                        value=move || recommended_transfer_value(&forecast.get(), &state.get(), transfer.get())
-                        note=move || recommended_transfer_note(&forecast.get(), &state.get())
+                        value=move || {
+                            let snapshot = state.get();
+                            recommended_transfer_value(
+                                &forecast.get(),
+                                &snapshot,
+                                Date::today(),
+                                transfer.get(),
+                            )
+                        }
+                        note=move || {
+                            let snapshot = state.get();
+                            recommended_transfer_note(
+                                &forecast.get(),
+                                &snapshot,
+                                Date::today(),
+                                transfer.get(),
+                            )
+                        }
                     />
                     <Metric
                         label="Lowest projected balance"
@@ -371,18 +387,36 @@ fn Dashboard(
                         label="Paycheck pressure"
                         value=move || {
                             let snapshot = state.get();
+                            let recommended_transfer = capped_recommended_transfer_amount(
+                                &forecast.get(),
+                                &snapshot,
+                                Date::today(),
+                                transfer.get(),
+                            );
                             paycheck_pressure_value(
                                 &snapshot,
                                 Date::today(),
-                                recommended_transfer_amount(&forecast.get(), &snapshot, transfer.get()),
+                                recommended_transfer,
                             )
                         }
                         note=move || {
                             let snapshot = state.get();
+                            let recommended_transfer = capped_recommended_transfer_amount(
+                                &forecast.get(),
+                                &snapshot,
+                                Date::today(),
+                                transfer.get(),
+                            );
                             paycheck_pressure_note(
                                 &snapshot,
                                 Date::today(),
-                                recommended_transfer_amount(&forecast.get(), &snapshot, transfer.get()),
+                                recommended_transfer,
+                                recommended_transfer_gap(
+                                    &forecast.get(),
+                                    &snapshot,
+                                    Date::today(),
+                                    transfer.get(),
+                                ),
                             )
                         }
                     />
@@ -2647,6 +2681,7 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Forecast controls" => "Paramètres de prévision",
         "Forecast years" => "Années de prévision",
         "forecast" => "prévu",
+        "Find or cut" => "Trouver ou réduire",
         "Forget token" => "Oublier le jeton",
         "Frequency" => "Fréquence",
         "French" => "Français",
@@ -2749,6 +2784,7 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Token saved" => "Jeton enregistré",
         "Today" => "Aujourd'hui",
         "Tomorrow" => "Demain",
+        "to cut or find" => "à réduire ou trouver",
         "to stay afloat" => "pour rester à flot",
         "Transactions" => "Transactions",
         "transactions" => "transactions",
@@ -3711,10 +3747,19 @@ fn paycheck_pressure_value(state: &PlannerState, today: Date, recommended_transf
     format!("{:.1}%", (recommended_transfer / paycheck) * 100.0)
 }
 
-fn paycheck_pressure_note(state: &PlannerState, today: Date, recommended_transfer: f64) -> String {
+fn paycheck_pressure_note(
+    state: &PlannerState,
+    today: Date,
+    recommended_transfer: f64,
+    transfer_gap: f64,
+) -> String {
     let Some(paycheck) = next_paycheck_amount(state, today) else {
         return t("Edit paycheck transfer").to_string();
     };
+
+    if transfer_gap > 0.0 {
+        return format!("{} {}", money(transfer_gap), t("to cut or find"));
+    }
 
     if recommended_transfer > paycheck {
         format!(
@@ -3746,11 +3791,61 @@ fn recommended_transfer_amount(forecast: &Forecast, state: &PlannerState, transf
     transfer + shortfall_add_on_per_paycheck(forecast, state).unwrap_or(0.0)
 }
 
-fn recommended_transfer_value(forecast: &Forecast, state: &PlannerState, transfer: f64) -> String {
-    money(recommended_transfer_amount(forecast, state, transfer))
+fn capped_recommended_transfer_amount(
+    forecast: &Forecast,
+    state: &PlannerState,
+    today: Date,
+    transfer: f64,
+) -> f64 {
+    let recommended = recommended_transfer_amount(forecast, state, transfer);
+    next_paycheck_amount(state, today)
+        .map(|paycheck| recommended.min(paycheck))
+        .unwrap_or(recommended)
 }
 
-fn recommended_transfer_note(forecast: &Forecast, state: &PlannerState) -> String {
+fn recommended_transfer_gap(
+    forecast: &Forecast,
+    state: &PlannerState,
+    today: Date,
+    transfer: f64,
+) -> f64 {
+    let recommended = recommended_transfer_amount(forecast, state, transfer);
+    let cap_gap = (recommended
+        - capped_recommended_transfer_amount(forecast, state, today, transfer))
+    .max(0.0);
+    if cap_gap > 0.0 {
+        return cap_gap;
+    }
+
+    if shortfall_add_on_per_paycheck(forecast, state).is_none() {
+        return (state.settings.minimum_buffer - forecast.low_point.balance).max(0.0);
+    }
+
+    0.0
+}
+
+fn recommended_transfer_value(
+    forecast: &Forecast,
+    state: &PlannerState,
+    today: Date,
+    transfer: f64,
+) -> String {
+    money(capped_recommended_transfer_amount(
+        forecast, state, today, transfer,
+    ))
+}
+
+fn recommended_transfer_note(
+    forecast: &Forecast,
+    state: &PlannerState,
+    today: Date,
+    transfer: f64,
+) -> String {
+    let gap = recommended_transfer_gap(forecast, state, today, transfer);
+    if gap > 0.0 {
+        return format!("{} {}", t("Find or cut"), money(gap));
+    }
+
     let Some(add_on) = shortfall_add_on_per_paycheck(forecast, state) else {
         return t("Next paycheck").to_string();
     };
@@ -3765,7 +3860,7 @@ fn shortfall_add_on_per_paycheck(forecast: &Forecast, state: &PlannerState) -> O
 
     let start = forecast.daily.first()?.date;
     let low_date = forecast.low_point.date;
-    let paychecks = paydays_before(start, low_date);
+    let paychecks = paycheck_transfers_before(state, start, low_date);
     if paychecks == 0 {
         return None;
     }
@@ -3776,6 +3871,23 @@ fn shortfall_add_on_per_paycheck(forecast: &Forecast, state: &PlannerState) -> O
     Some(round_cents(with_margin / paychecks as f64))
 }
 
+fn paycheck_transfers_before(state: &PlannerState, mut date: Date, end: Date) -> usize {
+    let mut count = 0;
+    while date < end {
+        date = date.next_day();
+        if state
+            .paychecks
+            .iter()
+            .any(|paycheck| bill_occurs_for_ui(paycheck, date))
+        {
+            count += 1;
+        }
+    }
+
+    count
+}
+
+#[cfg(test)]
 fn paydays_before(mut date: Date, end: Date) -> usize {
     if date >= end {
         return 0;
@@ -3791,6 +3903,7 @@ fn paydays_before(mut date: Date, end: Date) -> usize {
     count
 }
 
+#[cfg(test)]
 fn is_payday(date: Date) -> bool {
     date.day == 15 || date.day == days_in_month(date.year, date.month).min(30)
 }
@@ -4743,11 +4856,11 @@ mod tests {
         detect_recurring_candidates, group_transactions_by_category, merge_transaction_corrections,
         next_bill_due_date, next_thursday_after, normalize_category_name, parse_money,
         paycheck_pressure_note, paycheck_pressure_value, paydays_before,
-        recommended_transfer_amount, recommended_transfer_note, recommended_transfer_value,
-        refresh_recurring_detection, shortfall_add_on_per_paycheck, sort_transactions_by_date,
-        sync_detected_bills, transaction_bill_select_value, transaction_group_amount_label,
-        transaction_group_recurring_label, transaction_recurring_label, TransactionSortColumn,
-        YnabTransaction,
+        recommended_transfer_amount, recommended_transfer_gap, recommended_transfer_note,
+        recommended_transfer_value, refresh_recurring_detection, shortfall_add_on_per_paycheck,
+        sort_transactions_by_date, sync_detected_bills, transaction_bill_select_value,
+        transaction_group_amount_label, transaction_group_recurring_label,
+        transaction_recurring_label, TransactionSortColumn, YnabTransaction,
     };
     use crate::forecast::{DailyPoint, Date, Forecast};
     use crate::models::{
@@ -5416,6 +5529,17 @@ mod tests {
         let mut state = PlannerState::default();
         state.settings.minimum_buffer = 250.0;
         state.settings.margin_percent = 8.0;
+        state.paychecks.push(Bill {
+            id: 1,
+            name: "Paycheck transfer".to_string(),
+            amount: 1500.0,
+            due_day: 15,
+            frequency: Frequency::Semimonthly,
+            annual_increase: 0.0,
+            renewal_month: 5,
+            anchor_date: Some("2026-05-15".to_string()),
+            history: Vec::new(),
+        });
         let forecast = Forecast {
             daily: vec![DailyPoint {
                 date: Date {
@@ -5457,12 +5581,90 @@ mod tests {
             Some(55.87)
         );
         assert_eq!(
-            recommended_transfer_note(&forecast, &state),
+            recommended_transfer_note(
+                &forecast,
+                &state,
+                Date {
+                    year: 2026,
+                    month: 5,
+                    day: 3,
+                },
+                200.0,
+            ),
             "+$55.87 to stay afloat"
         );
         assert_eq!(
-            recommended_transfer_value(&forecast, &state, 200.0),
+            recommended_transfer_value(
+                &forecast,
+                &state,
+                Date {
+                    year: 2026,
+                    month: 5,
+                    day: 3,
+                },
+                200.0,
+            ),
             "$255.87"
+        );
+    }
+
+    #[test]
+    fn recommended_transfer_caps_at_paycheck_amount_and_shows_gap() {
+        let mut state = PlannerState::default();
+        state.settings.minimum_buffer = 250.0;
+        state.settings.margin_percent = 0.0;
+        state.paychecks.push(Bill {
+            id: 1,
+            name: "Paycheck transfer".to_string(),
+            amount: 800.0,
+            due_day: 15,
+            frequency: Frequency::Semimonthly,
+            annual_increase: 0.0,
+            renewal_month: 5,
+            anchor_date: Some("2026-05-15".to_string()),
+            history: Vec::new(),
+        });
+        let forecast = Forecast {
+            daily: vec![DailyPoint {
+                date: Date {
+                    year: 2026,
+                    month: 5,
+                    day: 15,
+                },
+                balance: 0.0,
+                inflow: 0.0,
+                outflow: 0.0,
+            }],
+            events: Vec::new(),
+            low_point: DailyPoint {
+                date: Date {
+                    year: 2026,
+                    month: 5,
+                    day: 30,
+                },
+                balance: -400.0,
+                inflow: 0.0,
+                outflow: 0.0,
+            },
+            current_year_outflow: 0.0,
+        };
+        let today = Date {
+            year: 2026,
+            month: 5,
+            day: 15,
+        };
+
+        assert_eq!(
+            recommended_transfer_value(&forecast, &state, today, 800.0),
+            "$800.00"
+        );
+        assert_eq!(
+            recommended_transfer_gap(&forecast, &state, today, 800.0),
+            650.0
+        );
+        assert_eq!(
+            recommended_transfer_note(&forecast, &state, today, 800.0),
+            "Find or cut $650.00"
         );
     }
 
@@ -5527,6 +5729,7 @@ mod tests {
                     day: 10,
                 },
                 recommended_transfer,
+                0.0,
             ),
             "$1200.00 left after transfer"
         );

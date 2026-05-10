@@ -154,15 +154,27 @@ fn transfer_for_date(state: &PlannerState, date: Date, start: Date, balance: f64
         return 0.0;
     }
 
-    let last_payday = date.day == days_in_month(date.year, date.month).min(30);
-    if date.day == 15 || last_payday {
-        let required_reserve = required_reserve_for_date(state, date, start)
-            .max(next_paycheck_payment_reserve(state, date, start));
-        let base_transfer = (required_reserve - balance).max(0.0);
-        ceil_cents(base_transfer * (1.0 + state.settings.margin_percent / 100.0))
-    } else {
-        0.0
+    let available_transfer = paycheck_transfer_capacity_for_date(state, date, start);
+    if available_transfer <= 0.0 {
+        return 0.0;
     }
+
+    let required_reserve = required_reserve_for_date(state, date, start)
+        .max(next_paycheck_payment_reserve(state, date, start));
+    let base_transfer = (required_reserve - balance).max(0.0);
+    let recommended_transfer =
+        ceil_cents(base_transfer * (1.0 + state.settings.margin_percent / 100.0));
+
+    recommended_transfer.min(available_transfer)
+}
+
+fn paycheck_transfer_capacity_for_date(state: &PlannerState, date: Date, start: Date) -> f64 {
+    state
+        .paychecks
+        .iter()
+        .filter(|paycheck| bill_occurs(paycheck, date))
+        .map(|paycheck| projected_bill_amount(paycheck, date, start).max(0.0))
+        .sum()
 }
 
 fn required_reserve_for_date(state: &PlannerState, date: Date, start: Date) -> f64 {
@@ -181,7 +193,7 @@ fn next_paycheck_payment_reserve(state: &PlannerState, date: Date, start: Date) 
             .iter()
             .filter_map(|bill| {
                 let next_due = next_bill_date_on_or_after(bill, date);
-                (next_due < next_payday_after(date))
+                (next_due < next_payday_after(state, date))
                     .then_some(projected_bill_amount(bill, next_due, start))
             })
             .sum::<f64>()
@@ -220,28 +232,19 @@ fn previous_bill_date_before(bill: &Bill, mut date: Date) -> Date {
     date
 }
 
-fn next_payday_after(date: Date) -> Date {
-    let last_payday = days_in_month(date.year, date.month).min(30);
-    if date.day < 15 {
-        Date { day: 15, ..date }
-    } else if date.day < last_payday {
-        Date {
-            day: last_payday,
-            ..date
-        }
-    } else if date.month < 12 {
-        Date {
-            year: date.year,
-            month: date.month + 1,
-            day: 15,
-        }
-    } else {
-        Date {
-            year: date.year + 1,
-            month: 1,
-            day: 15,
+fn next_payday_after(state: &PlannerState, mut date: Date) -> Date {
+    for _ in 0..=370 {
+        date = date.next_day();
+        if state
+            .paychecks
+            .iter()
+            .any(|paycheck| bill_occurs(paycheck, date))
+        {
+            return date;
         }
     }
+
+    date
 }
 
 fn bill_occurs(bill: &Bill, date: Date) -> bool {
@@ -758,6 +761,101 @@ mod tests {
         assert_eq!(forecast.events[1].event_type, EventType::Payment);
         assert_eq!(forecast.events[1].balance, 250.0);
         assert!(forecast.low_point.balance >= state.settings.minimum_buffer);
+    }
+
+    #[test]
+    fn transfer_never_exceeds_paycheck_amount() {
+        let mut state = PlannerState::default();
+        state.settings.starting_balance = 0.0;
+        state.settings.minimum_buffer = 250.0;
+        state.settings.margin_percent = 0.0;
+        state.settings.forecast_years = 1;
+        state.paychecks.push(Bill {
+            id: 1,
+            name: "Paycheck transfer".to_string(),
+            amount: 800.0,
+            due_day: 15,
+            frequency: Frequency::Semimonthly,
+            annual_increase: 0.0,
+            renewal_month: 5,
+            anchor_date: Some("2026-05-15".to_string()),
+            history: Vec::new(),
+        });
+        state.bills.push(Bill {
+            id: 1,
+            name: "Rent".to_string(),
+            amount: 1300.0,
+            due_day: 15,
+            frequency: Frequency::Monthly,
+            annual_increase: 0.0,
+            renewal_month: 1,
+            anchor_date: None,
+            history: Vec::new(),
+        });
+
+        let forecast = simulate(
+            &state,
+            Date {
+                year: 2026,
+                month: 5,
+                day: 15,
+            },
+        );
+
+        assert_eq!(optimize_transfer(&state, forecast.daily[0].date), 800.0);
+        assert_eq!(forecast.events[0].event_type, EventType::Transfer);
+        assert_eq!(forecast.events[0].amount, 800.0);
+        assert_eq!(forecast.events[1].event_type, EventType::Payment);
+        assert!(forecast.low_point.balance < state.settings.minimum_buffer);
+    }
+
+    #[test]
+    fn transfer_uses_configured_paycheck_schedule() {
+        let mut state = PlannerState::default();
+        state.settings.starting_balance = 0.0;
+        state.settings.minimum_buffer = 250.0;
+        state.settings.margin_percent = 0.0;
+        state.settings.forecast_years = 1;
+        state.paychecks.push(Bill {
+            id: 1,
+            name: "Paycheck transfer".to_string(),
+            amount: 800.0,
+            due_day: 14,
+            frequency: Frequency::Biweekly,
+            annual_increase: 0.0,
+            renewal_month: 5,
+            anchor_date: Some("2026-05-14".to_string()),
+            history: Vec::new(),
+        });
+        state.bills.push(Bill {
+            id: 1,
+            name: "Internet".to_string(),
+            amount: 100.0,
+            due_day: 14,
+            frequency: Frequency::Monthly,
+            annual_increase: 0.0,
+            renewal_month: 1,
+            anchor_date: None,
+            history: Vec::new(),
+        });
+
+        let forecast = simulate(
+            &state,
+            Date {
+                year: 2026,
+                month: 5,
+                day: 14,
+            },
+        );
+
+        assert_eq!(forecast.events[0].event_type, EventType::Transfer);
+        assert_eq!(forecast.events[0].date.day, 14);
+        assert!(!forecast
+            .events
+            .iter()
+            .any(|event| event.event_type == EventType::Transfer
+                && event.date.month == 5
+                && event.date.day == 15));
     }
 
     #[test]
