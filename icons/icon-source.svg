@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Payflow Forecast">
+  <rect width="512" height="512" rx="92" fill="#182321"/>
+  <path d="M116 322c47-86 101-129 162-129 45 0 83 22 114 67" fill="none" stroke="#45c4ba" stroke-width="38" stroke-linecap="round"/>
+  <path d="M116 252c36 28 75 42 116 42 57 0 111-27 164-80" fill="none" stroke="#f4c95d" stroke-width="30" stroke-linecap="round"/>
+  <circle cx="132" cy="352" r="28" fill="#f6f8f7"/>
+  <circle cx="389" cy="178" r="28" fill="#f6f8f7"/>
+  <text x="256" y="384" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="118" font-weight="800" fill="#f6f8f7">PF</text>
+</svg>

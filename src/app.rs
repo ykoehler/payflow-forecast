@@ -118,6 +118,8 @@ pub fn App() -> impl IntoView {
                     <TabButton view=ViewName::Settings active_view />
                 </nav>
 
+                <InstallAppEntry />
+
                 <button
                     class="sidebar-toggle"
                     type="button"
@@ -152,6 +154,8 @@ pub fn App() -> impl IntoView {
                     </div>
                 </header>
 
+                <InstallAppBanner />
+
                 {move || match active_view.get() {
                     ViewName::Dashboard => view! { <Dashboard state forecast transfer /> }.into_any(),
                     ViewName::Bills => view! { <BillsView state /> }.into_any(),
@@ -162,6 +166,63 @@ pub fn App() -> impl IntoView {
             </section>
             <TutorialOverlay state show_tutorial tutorial_step />
         </main>
+    }
+}
+
+#[component]
+fn InstallAppEntry() -> impl IntoView {
+    view! {
+        <div class="install-entry">
+            <button
+                class="install-button"
+                type="button"
+                data-install-app
+                aria-label=move || t("Install app")
+                title=move || t("Install app")
+            >
+                <span class="install-icon" aria-hidden="true">"+"</span>
+                <span class="install-copy">
+                    <strong>{move || t("Install app")}</strong>
+                    <small>{move || t("Add this site to your home screen.")}</small>
+                </span>
+            </button>
+            <section class="install-help" data-install-help hidden>
+                <div class="install-help-card" role="dialog" aria-modal="true" aria-labelledby="install-help-title">
+                    <div class="install-help-heading">
+                        <h3 id="install-help-title">{move || t("Add to Home Screen")}</h3>
+                        <button
+                            class="icon-button install-help-close"
+                            type="button"
+                            data-install-help-close
+                            aria-label=move || t("Close")
+                            title=move || t("Close")
+                        >
+                            "x"
+                        </button>
+                    </div>
+                    <p>{move || t("Open Payflow Forecast from your device home screen like a regular app.")}</p>
+                    <ol>
+                        <li>{move || t("iPhone or iPad: open Safari, tap Share, then Add to Home Screen.")}</li>
+                        <li>{move || t("Android: open the browser menu, then tap Install app or Add to Home screen.")}</li>
+                    </ol>
+                </div>
+            </section>
+        </div>
+    }
+}
+
+#[component]
+fn InstallAppBanner() -> impl IntoView {
+    view! {
+        <section class="mobile-install-card">
+            <div>
+                <strong>{move || t("Use Payflow like an app")}</strong>
+                <p>{move || t("Add it to your home screen for a full-screen shortcut on this device.")}</p>
+            </div>
+            <button class="primary-button" type="button" data-install-app>
+                {move || t("Add to Home Screen")}
+            </button>
+        </section>
     }
 }
 
@@ -986,6 +1047,19 @@ fn SettingsView(
                         </select>
                     </label>
                     <p>{move || t("Browser default follows your browser language. Choosing a language saves that preference in a cookie.")}</p>
+                </section>
+
+                <section class="form-panel">
+                    <h3>{move || t("Install button")}</h3>
+                    <p>{move || t("Hide the install button on this device if Payflow is already on your home screen.")}</p>
+                    <div class="settings-actions install-settings-actions">
+                        <button class="secondary-button install-visible-only" type="button" data-install-hide>
+                            {move || t("Hide install button")}
+                        </button>
+                        <button class="secondary-button install-hidden-only" type="button" data-install-show>
+                            {move || t("Show install button")}
+                        </button>
+                    </div>
                 </section>
 
                 <section class="form-panel">
@@ -2286,6 +2360,15 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Click any value to edit it. Expand a row for schedule and increase details." => {
             "Cliquez sur une valeur pour la modifier. Ouvrez une ligne pour voir l'échéancier et les détails d'augmentation."
         }
+        "Add this site to your home screen." => "Ajoutez ce site à votre écran d'accueil.",
+        "Add it to your home screen for a full-screen shortcut on this device." => {
+            "Ajoutez-le à votre écran d'accueil pour avoir un raccourci plein écran sur cet appareil."
+        }
+        "Add to Home Screen" => "Ajouter à l'écran d'accueil",
+        "Android: open the browser menu, then tap Install app or Add to Home screen." => {
+            "Android : ouvrez le menu du navigateur, puis touchez Installer l'appli ou Ajouter à l'écran d'accueil."
+        }
+        "Close" => "Fermer",
         "Compare the latest increase against each bill's historical average." => {
             "Comparez la dernière augmentation avec la moyenne historique de chaque facture."
         }
@@ -2316,6 +2399,10 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Group" => "Grouper",
         "Group transactions" => "Grouper les transactions",
         "Hide advanced bill fields" => "Masquer les détails de la facture",
+        "Hide install button" => "Masquer le bouton d'installation",
+        "Hide the install button on this device if Payflow is already on your home screen." => {
+            "Masquez le bouton d'installation sur cet appareil si Payflow est déjà sur votre écran d'accueil."
+        }
         "Hide paycheck transfer details" => "Masquer les détails du virement de paie",
         "Hide transaction details" => "Masquer les détails de la transaction",
         "Historical average" => "Moyenne historique",
@@ -2323,6 +2410,11 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Importing..." => "Importation...",
         "Imported" => "Importées",
         "imported" => "importées",
+        "Install app" => "Installer l'appli",
+        "Install button" => "Bouton d'installation",
+        "iPhone or iPad: open Safari, tap Share, then Add to Home Screen." => {
+            "iPhone ou iPad : ouvrez Safari, touchez Partager, puis Ajouter à l'écran d'accueil."
+        }
         "Inflow" => "Entrées",
         "Increase analysis" => "Analyse des augmentations",
         "Irregular" => "Irrégulier",
@@ -2353,6 +2445,9 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "of" => "sur",
         "on" => "le",
         "Outflow" => "Sorties",
+        "Open Payflow Forecast from your device home screen like a regular app." => {
+            "Ouvrez Payflow Forecast depuis l'écran d'accueil de votre appareil comme une appli normale."
+        }
         "Past 12 months" => "12 derniers mois",
         "Paycheck amount" => "Montant de la paie",
         "Paycheck pressure" => "Pression sur la paie",
@@ -2382,6 +2477,7 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Short by" => "Manque de",
         "Show tutorial" => "Afficher le tutoriel",
         "Show advanced bill fields" => "Afficher les détails de la facture",
+        "Show install button" => "Afficher le bouton d'installation",
         "Show paycheck transfer details" => "Afficher les détails du virement de paie",
         "Show transaction details" => "Afficher les détails de la transaction",
         "Skip introduction" => "Passer l'introduction",
@@ -2406,6 +2502,7 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         }
         "Unassigned" => "Non assigné",
         "Upcoming payments" => "Paiements à venir",
+        "Use Payflow like an app" => "Utiliser Payflow comme une appli",
         "Use a personal access token to import the dedicated recurring-payment account." => {
             "Utilisez un jeton d'accès personnel pour importer le compte dédié aux paiements récurrents."
         }
