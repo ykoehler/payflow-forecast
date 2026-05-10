@@ -433,8 +433,9 @@ fn BillsView(state: RwSignal<PlannerState>) -> impl IntoView {
             <div class="section-heading subsection-heading">
                 <div>
                     <h3>{move || t("Paycheck Transfers")}</h3>
-                    <p>{move || t("Recurring incoming transfers detected from transactions.")}</p>
+                    <p>{move || t("Add or review recurring incoming transfers for this account.")}</p>
                 </div>
+                <button class="primary-button" type="button" on:click=move |_| add_paycheck(state)>{move || t("Add Paycheck")}</button>
             </div>
             <div class="table-wrap bill-table-wrap" data-testid="paycheck-transfers-table">
                 <table class="bill-table">
@@ -452,7 +453,7 @@ fn BillsView(state: RwSignal<PlannerState>) -> impl IntoView {
                             when=move || !state.get().paychecks.is_empty()
                             fallback=move || view! {
                                 <tr class="empty-table-row">
-                                    <td colspan="5">{move || t("No recurring paycheck transfers detected yet.")}</td>
+                                    <td colspan="5">{move || t("No paycheck transfers yet.")}</td>
                                 </tr>
                             }
                         >
@@ -2408,6 +2409,10 @@ fn tr(language: Language, key: &'static str) -> &'static str {
             "Les virements adaptatifs gardent le compte près de la réserve requise au lieu d'accumuler trop d'argent."
         }
         "Add Bill" => "Ajouter une facture",
+        "Add Paycheck" => "Ajouter une paie",
+        "Add or review recurring incoming transfers for this account." => {
+            "Ajoutez ou révisez les virements entrants récurrents pour ce compte."
+        }
         "Add paycheck amount" => "Ajouter le montant de la paie",
         "Add Transaction" => "Ajouter une transaction",
         "Amount" => "Montant",
@@ -2508,6 +2513,7 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Next week" => "La semaine prochaine",
         "No bill" => "Aucune facture",
         "No imported transactions in the past year" => "Aucune transaction importée dans la dernière année",
+        "No paycheck transfers yet." => "Aucun virement de paie pour l'instant.",
         "No recurring paycheck transfers detected yet." => "Aucun virement de paie récurrent détecté pour l'instant.",
         "No transactions" => "Aucune transaction",
         "Non-recurring" => "Non récurrent",
@@ -2736,6 +2742,30 @@ fn add_bill(state: RwSignal<PlannerState>) {
             due_day: today.day,
             frequency: Frequency::Monthly,
             annual_increase: 3.0,
+            renewal_month: today.month,
+            anchor_date: Some(date_input_value(today)),
+            history: Vec::new(),
+        });
+    });
+}
+
+fn add_paycheck(state: RwSignal<PlannerState>) {
+    state.update(|state| {
+        let id = state
+            .paychecks
+            .iter()
+            .map(|paycheck| paycheck.id)
+            .max()
+            .unwrap_or(0)
+            + 1;
+        let today = Date::today();
+        state.paychecks.push(Bill {
+            id,
+            name: "Paycheck transfer".to_string(),
+            amount: 1000.0,
+            due_day: today.day,
+            frequency: Frequency::Semimonthly,
+            annual_increase: 0.0,
             renewal_month: today.month,
             anchor_date: Some(date_input_value(today)),
             history: Vec::new(),
