@@ -318,68 +318,88 @@ fn Dashboard(
 ) -> impl IntoView {
     view! {
         <section class="view active">
-            <div class="metrics-grid">
-                <Metric
-                    label="Recommended transfer"
-                    value=move || recommended_transfer_value(&forecast.get(), &state.get(), transfer.get())
-                    note=move || recommended_transfer_note(&forecast.get(), &state.get())
-                />
-                <Metric
-                    label="Lowest projected balance"
-                    value=move || money(forecast.get().low_point.balance)
-                    note=move || forecast.get().low_point.date.label()
-                />
-                <Metric
-                    label="Paycheck pressure"
-                    value=move || paycheck_pressure_value(&state.get(), transfer.get())
-                    note=move || {
-                        paycheck_pressure_note(&state.get(), transfer.get())
-                    }
-                />
-            </div>
-
-            <section class="chart-section">
-                <div class="section-heading">
-                    <div>
-                        <h3>{move || t("Balance and activity")}</h3>
-                        <p>{move || t("Adaptive transfers keep the account near the required reserve instead of accumulating excess cash.")}</p>
-                    </div>
-                    <div class="legend">
-                        <span><i class="actual-key"></i>{move || t("Actual balance")}</span>
-                        <span><i class="line-key"></i>{move || t("Projected balance")}</span>
-                        <span><i class="inflow-key"></i>{move || t("Inflow")}</span>
-                        <span><i class="outflow-key"></i>{move || t("Outflow")}</span>
-                    </div>
+            <Show
+                when=move || !state.get().paychecks.is_empty()
+                fallback=move || view! { <DashboardPaycheckSetup state /> }
+            >
+                <div class="metrics-grid">
+                    <Metric
+                        label="Recommended transfer"
+                        value=move || recommended_transfer_value(&forecast.get(), &state.get(), transfer.get())
+                        note=move || recommended_transfer_note(&forecast.get(), &state.get())
+                    />
+                    <Metric
+                        label="Lowest projected balance"
+                        value=move || money(forecast.get().low_point.balance)
+                        note=move || forecast.get().low_point.date.label()
+                    />
+                    <Metric
+                        label="Paycheck pressure"
+                        value=move || paycheck_pressure_value(&state.get(), transfer.get())
+                        note=move || {
+                            paycheck_pressure_note(&state.get(), transfer.get())
+                        }
+                    />
                 </div>
-                {move || {
-                    let snapshot = state.get();
-                    chart_svg(
-                        &forecast.get(),
-                        required_floor(&snapshot.settings, &snapshot.bills),
-                        snapshot.settings.starting_balance,
-                        &snapshot.transactions,
-                    )
-                }}
-            </section>
 
-            <section class="split-layout">
-                <article class="table-panel full-span">
-                    <div class="section-heading"><h3>{move || t("Upcoming payments")}</h3></div>
-                    <div class="compact-list">
-                        {move || forecast.get().events
-                            .into_iter()
-                            .filter(|event| event.event_type == EventType::Payment)
-                            .take(8)
-                            .map(|event| view! {
-                                <div class="list-row">
-                                    <div class="row-top"><span>{event.name}</span><span class="negative">{money(event.amount.abs())}</span></div>
-                                    <div class="row-sub">{format!("{} {}: {}", event.date.label(), t("after payment"), money(event.balance))}</div>
-                                </div>
-                            })
-                            .collect_view()}
+                <section class="chart-section">
+                    <div class="section-heading">
+                        <div>
+                            <h3>{move || t("Balance and activity")}</h3>
+                            <p>{move || t("Adaptive transfers keep the account near the required reserve instead of accumulating excess cash.")}</p>
+                        </div>
+                        <div class="legend">
+                            <span><i class="actual-key"></i>{move || t("Actual balance")}</span>
+                            <span><i class="line-key"></i>{move || t("Projected balance")}</span>
+                            <span><i class="inflow-key"></i>{move || t("Inflow")}</span>
+                            <span><i class="outflow-key"></i>{move || t("Outflow")}</span>
+                        </div>
                     </div>
-                </article>
-            </section>
+                    {move || {
+                        let snapshot = state.get();
+                        chart_svg(
+                            &forecast.get(),
+                            required_floor(&snapshot.settings, &snapshot.bills),
+                            snapshot.settings.starting_balance,
+                            &snapshot.transactions,
+                        )
+                    }}
+                </section>
+
+                <section class="split-layout">
+                    <article class="table-panel full-span">
+                        <div class="section-heading"><h3>{move || t("Upcoming payments")}</h3></div>
+                        <div class="compact-list">
+                            {move || forecast.get().events
+                                .into_iter()
+                                .filter(|event| event.event_type == EventType::Payment)
+                                .take(8)
+                                .map(|event| view! {
+                                    <div class="list-row">
+                                        <div class="row-top"><span>{event.name}</span><span class="negative">{money(event.amount.abs())}</span></div>
+                                        <div class="row-sub">{format!("{} {}: {}", event.date.label(), t("after payment"), money(event.balance))}</div>
+                                    </div>
+                                })
+                                .collect_view()}
+                        </div>
+                    </article>
+                </section>
+            </Show>
+        </section>
+    }
+}
+
+#[component]
+fn DashboardPaycheckSetup(state: RwSignal<PlannerState>) -> impl IntoView {
+    view! {
+        <section class="setup-panel">
+            <div>
+                <h3>{move || t("Add a paycheck transfer to forecast")}</h3>
+                <p>{move || t("Payflow needs at least one paycheck transfer before it can estimate funding dates, recommended transfers, and projected balances.")}</p>
+            </div>
+            <button class="primary-button" type="button" on:click=move |_| add_paycheck(state)>
+                {move || t("Add Paycheck")}
+            </button>
         </section>
     }
 }
@@ -2409,6 +2429,7 @@ fn tr(language: Language, key: &'static str) -> &'static str {
             "Les virements adaptatifs gardent le compte près de la réserve requise au lieu d'accumuler trop d'argent."
         }
         "Add Bill" => "Ajouter une facture",
+        "Add a paycheck transfer to forecast" => "Ajoutez un virement de paie pour prévoir",
         "Add Paycheck" => "Ajouter une paie",
         "Add or review recurring incoming transfers for this account." => {
             "Ajoutez ou révisez les virements entrants récurrents pour ce compte."
@@ -2530,6 +2551,9 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Paycheck pressure" => "Pression sur la paie",
         "Paycheck rules" => "Règles de paie",
         "Payee" => "Bénéficiaire",
+        "Payflow needs at least one paycheck transfer before it can estimate funding dates, recommended transfers, and projected balances." => {
+            "Payflow a besoin d'au moins un virement de paie avant d'estimer les dates de financement, les virements recommandés et les soldes projetés."
+        }
         "Paycheck Transfer" => "Virement de paie",
         "Paycheck Transfers" => "Virements de paie",
         "Personal access token" => "Jeton d'accès personnel",

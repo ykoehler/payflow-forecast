@@ -475,6 +475,7 @@ html[data-install-available="true"] .mobile-install-card {
 .metric-card,
 .chart-section,
 .table-panel,
+.setup-panel,
 .form-panel {
   min-width: 0;
   background: var(--panel);
@@ -485,6 +486,24 @@ html[data-install-available="true"] .mobile-install-card {
 
 .metric-card {
   padding: 18px;
+}
+
+.setup-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 20px;
+}
+
+.setup-panel h3 {
+  margin-bottom: 6px;
+  font-size: 22px;
+}
+
+.setup-panel p {
+  color: var(--muted);
+  max-width: 720px;
 }
 
 .metric-card span,
@@ -1667,6 +1686,10 @@ dialog menu {
   .insight-grid,
   .transaction-grid,
   .inline-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-panel {
     grid-template-columns: 1fr;
   }
 

@@ -39,7 +39,7 @@ pub struct Forecast {
 }
 
 pub fn optimize_transfer(state: &PlannerState, start: Date) -> f64 {
-    if state.bills.is_empty() {
+    if state.bills.is_empty() || state.paychecks.is_empty() {
         return 0.0;
     }
 
@@ -150,7 +150,7 @@ pub fn historical_increase_summary(bill: &Bill) -> (f64, f64) {
 }
 
 fn transfer_for_date(state: &PlannerState, date: Date, start: Date, balance: f64) -> f64 {
-    if state.bills.is_empty() {
+    if state.bills.is_empty() || state.paychecks.is_empty() {
         return 0.0;
     }
 
@@ -472,6 +472,7 @@ mod tests {
         state.settings.minimum_buffer = 250.0;
         state.settings.margin_percent = 8.0;
         state.settings.forecast_years = 1;
+        add_test_paycheck(&mut state);
         state.bills.push(Bill {
             id: 1,
             name: "Placeholder".to_string(),
@@ -504,6 +505,7 @@ mod tests {
         state.settings.minimum_buffer = 250.0;
         state.settings.margin_percent = 0.0;
         state.settings.forecast_years = 5;
+        add_test_paycheck(&mut state);
         state.bills.push(Bill {
             id: 1,
             name: "Monthly bill".to_string(),
@@ -729,6 +731,7 @@ mod tests {
         state.settings.minimum_buffer = 250.0;
         state.settings.margin_percent = 0.0;
         state.settings.forecast_years = 1;
+        add_test_paycheck(&mut state);
         state.bills.push(Bill {
             id: 1,
             name: "Internet".to_string(),
@@ -782,6 +785,37 @@ mod tests {
     }
 
     #[test]
+    fn bills_without_paycheck_transfers_do_not_generate_funding_forecast() {
+        let mut state = PlannerState::default();
+        state.settings.starting_balance = 0.0;
+        state.bills.push(Bill {
+            id: 1,
+            name: "Rent".to_string(),
+            amount: 1300.0,
+            due_day: 1,
+            frequency: Frequency::Monthly,
+            annual_increase: 0.0,
+            renewal_month: 1,
+            anchor_date: None,
+            history: Vec::new(),
+        });
+
+        let start = Date {
+            year: 2026,
+            month: 5,
+            day: 1,
+        };
+        let transfer = optimize_transfer(&state, start);
+        let forecast = simulate(&state, start);
+
+        assert_eq!(transfer, 0.0);
+        assert!(forecast
+            .events
+            .iter()
+            .all(|event| event.event_type != EventType::Transfer));
+    }
+
+    #[test]
     fn pre_payday_deficit_does_not_explode_transfer_recommendation() {
         let mut state = PlannerState::sample();
         state.settings.starting_balance = -454.49;
@@ -816,5 +850,19 @@ mod tests {
             serde_json::from_str(&serialized).expect("deserialize planner state");
 
         assert_eq!(restored, state);
+    }
+
+    fn add_test_paycheck(state: &mut PlannerState) {
+        state.paychecks.push(Bill {
+            id: 1,
+            name: "Paycheck transfer".to_string(),
+            amount: 1000.0,
+            due_day: 15,
+            frequency: Frequency::Semimonthly,
+            annual_increase: 0.0,
+            renewal_month: 1,
+            anchor_date: Some("2026-05-15".to_string()),
+            history: Vec::new(),
+        });
     }
 }
