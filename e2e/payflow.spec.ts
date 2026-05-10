@@ -322,9 +322,9 @@ test.describe("French browser locale", () => {
     await expect(page.getByRole("heading", { name: "Tableau de bord" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Factures" })).toBeVisible();
 
-    await page.getByRole("button", { name: "Parametres" }).click();
-    await expect(page.locator(".topbar h2")).toHaveText("Parametres");
-    await expect(page.getByLabel("Jeton d'acces personnel")).toBeVisible();
+    await page.getByRole("button", { name: "Paramètres" }).click();
+    await expect(page.locator(".topbar h2")).toHaveText("Paramètres");
+    await expect(page.getByLabel("Jeton d'accès personnel")).toBeVisible();
     await expect(page.getByRole("button", { name: "Charger les comptes" })).toBeVisible();
   });
 
@@ -333,7 +333,7 @@ test.describe("French browser locale", () => {
     await page.goto("./");
 
     await expect(page.getByRole("heading", { name: "Tableau de bord" })).toBeVisible();
-    await page.getByRole("button", { name: "Parametres" }).click();
+    await page.getByRole("button", { name: "Paramètres" }).click();
     await page.getByLabel("Langue").selectOption("en");
 
     await expect(page.locator(".topbar h2")).toHaveText("Settings");

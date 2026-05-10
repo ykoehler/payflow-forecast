@@ -2259,9 +2259,9 @@ fn tr(language: Language, key: &'static str) -> &'static str {
     match key {
         "Account" => "Compte",
         "Account setup" => "Configuration du compte",
-        "Actual balance" => "Solde reel",
+        "Actual balance" => "Solde réel",
         "Adaptive transfers keep the account near the required reserve instead of accumulating excess cash." => {
-            "Les virements adaptatifs gardent le compte pres de la reserve requise au lieu d'accumuler trop d'argent."
+            "Les virements adaptatifs gardent le compte près de la réserve requise au lieu d'accumuler trop d'argent."
         }
         "Add Bill" => "Ajouter une facture",
         "Add paycheck amount" => "Ajouter le montant de la paie",
@@ -2270,30 +2270,30 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Annual increase" => "Augmentation annuelle",
         "Asc" => "Asc",
         "Back" => "Retour",
-        "Balance and activity" => "Solde et activite",
+        "Balance and activity" => "Solde et activité",
         "Biweekly" => "Aux deux semaines",
         "Bills" => "Factures",
         "Bills and paycheck transfers" => "Factures et virements de paie",
         "Bills / Paycheck Transfers" => "Factures / virements de paie",
         "Browser default" => "Langue du navigateur",
         "Browser default follows your browser language. Choosing a language saves that preference in a cookie." => {
-            "La langue du navigateur suit votre navigateur. Choisir une langue enregistre cette preference dans un cookie."
+            "La langue du navigateur suit votre navigateur. Choisir une langue enregistre cette préférence dans un cookie."
         }
         "Budget" => "Budget",
         "buffer floor" => "plancher du coussin",
         "Clear" => "Effacer",
         "Click to edit" => "Cliquer pour modifier",
         "Click any value to edit it. Expand a row for schedule and increase details." => {
-            "Cliquez une valeur pour la modifier. Ouvrez une ligne pour voir l'echeancier et les details d'augmentation."
+            "Cliquez sur une valeur pour la modifier. Ouvrez une ligne pour voir l'échéancier et les détails d'augmentation."
         }
         "Compare the latest increase against each bill's historical average." => {
-            "Comparez la derniere augmentation avec la moyenne historique de chaque facture."
+            "Comparez la dernière augmentation avec la moyenne historique de chaque facture."
         }
-        "Collapse" => "Reduire",
-        "Collapse sidebar" => "Reduire le menu",
-        "Create Bill" => "Creer une facture",
+        "Collapse" => "Réduire",
+        "Collapse sidebar" => "Réduire le menu",
+        "Create Bill" => "Créer une facture",
         "Dashboard" => "Tableau de bord",
-        "Data" => "Donnees",
+        "Data" => "Données",
         "Date" => "Date",
         "Delete" => "Supprimer",
         "Desc" => "Desc",
@@ -2301,54 +2301,54 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "English" => "Anglais",
         "Expand" => "Agrandir",
         "Expand sidebar" => "Agrandir le menu",
-        "Expected increase" => "Augmentation prevue",
+        "Expected increase" => "Augmentation prévue",
         "Finish" => "Terminer",
         "For yearly and quarterly bills, this month anchors the payment schedule. For monthly bills, it is when yearly increases begin in the projection." => {
-            "Pour les factures annuelles et trimestrielles, ce mois ancre l'echeancier. Pour les factures mensuelles, il indique quand les augmentations annuelles commencent dans la projection."
+            "Pour les factures annuelles et trimestrielles, ce mois ancre l'échéancier. Pour les factures mensuelles, il indique quand les augmentations annuelles commencent dans la projection."
         }
-        "Forecast" => "Prevision",
-        "Forecast controls" => "Parametres de prevision",
-        "Forecast years" => "Annees de prevision",
-        "forecast" => "prevu",
+        "Forecast" => "Prévision",
+        "Forecast controls" => "Paramètres de prévision",
+        "Forecast years" => "Années de prévision",
+        "forecast" => "prévu",
         "Forget token" => "Oublier le jeton",
-        "Frequency" => "Frequence",
-        "French" => "Francais",
+        "Frequency" => "Fréquence",
+        "French" => "Français",
         "Group" => "Grouper",
         "Group transactions" => "Grouper les transactions",
-        "Hide advanced bill fields" => "Masquer les details de la facture",
-        "Hide paycheck transfer details" => "Masquer les details du virement de paie",
-        "Hide transaction details" => "Masquer les details de la transaction",
+        "Hide advanced bill fields" => "Masquer les détails de la facture",
+        "Hide paycheck transfer details" => "Masquer les détails du virement de paie",
+        "Hide transaction details" => "Masquer les détails de la transaction",
         "Historical average" => "Moyenne historique",
         "Import from YNAB" => "Importer depuis YNAB",
         "Importing..." => "Importation...",
-        "Imported" => "Importees",
-        "imported" => "importees",
-        "Inflow" => "Entrees",
+        "Imported" => "Importées",
+        "imported" => "importées",
+        "Inflow" => "Entrées",
         "Increase analysis" => "Analyse des augmentations",
-        "Irregular" => "Irregulier",
+        "Irregular" => "Irrégulier",
         "Latest change" => "Dernier changement",
         "Language" => "Langue",
-        "left after transfer" => "restants apres virement",
+        "left after transfer" => "restants après virement",
         "Load Accounts" => "Charger les comptes",
         "Loading..." => "Chargement...",
-        "Lowest projected balance" => "Solde projete le plus bas",
-        "matched" => "associees",
-        "Memo" => "Memo",
+        "Lowest projected balance" => "Solde projeté le plus bas",
+        "matched" => "associées",
+        "Memo" => "Mémo",
         "Minimum cash buffer" => "Coussin minimal",
         "Monthly" => "Mensuel",
         "Name" => "Nom",
-        "Never imported" => "Jamais importe",
+        "Never imported" => "Jamais importé",
         "Next" => "Suivant",
         "Next date" => "Prochaine date",
-        "Next due date" => "Prochaine echeance",
+        "Next due date" => "Prochaine échéance",
         "Next paycheck" => "Prochaine paie",
         "Next week" => "La semaine prochaine",
         "No bill" => "Aucune facture",
-        "No imported transactions in the past year" => "Aucune transaction importee dans la derniere annee",
-        "No recurring paycheck transfers detected yet." => "Aucun virement de paie recurrent detecte pour l'instant.",
+        "No imported transactions in the past year" => "Aucune transaction importée dans la dernière année",
+        "No recurring paycheck transfers detected yet." => "Aucun virement de paie récurrent détecté pour l'instant.",
         "No transactions" => "Aucune transaction",
-        "Non-recurring" => "Non recurrent",
-        "Non-Recurring" => "Non recurrent",
+        "Non-recurring" => "Non récurrent",
+        "Non-Recurring" => "Non récurrent",
         "None" => "Aucun",
         "of" => "sur",
         "on" => "le",
@@ -2356,124 +2356,124 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Past 12 months" => "12 derniers mois",
         "Paycheck amount" => "Montant de la paie",
         "Paycheck pressure" => "Pression sur la paie",
-        "Paycheck rules" => "Regles de paie",
-        "Payee" => "Beneficiaire",
+        "Paycheck rules" => "Règles de paie",
+        "Payee" => "Bénéficiaire",
         "Paycheck Transfer" => "Virement de paie",
         "Paycheck Transfers" => "Virements de paie",
-        "Personal access token" => "Jeton d'acces personnel",
-        "Pinned last" => "Epingle a la fin",
+        "Personal access token" => "Jeton d'accès personnel",
+        "Pinned last" => "Épinglé à la fin",
         "points" => "points",
-        "Previous" => "Precedent",
-        "Projected balance" => "Solde projete",
+        "Previous" => "Précédent",
+        "Projected balance" => "Solde projeté",
         "Quarterly" => "Trimestriel",
-        "Recurring" => "Recurrent",
-        "Recurring account planner" => "Planificateur de compte recurrent",
-        "Recurring incoming transfers detected from transactions." => "Virements entrants recurrents detectes a partir des transactions.",
-        "Recurring payments" => "Paiements recurrents",
+        "Recurring" => "Récurrent",
+        "Recurring account planner" => "Planificateur de compte récurrent",
+        "Recurring incoming transfers detected from transactions." => "Virements entrants récurrents détectés à partir des transactions.",
+        "Recurring payments" => "Paiements récurrents",
         "Reset the local planner, load demo data, or reopen the introduction." => {
-            "Reinitialisez le plan local, chargez des donnees demo ou rouvrez l'introduction."
+            "Réinitialisez le plan local, chargez des données démo ou rouvrez l'introduction."
         }
-        "Safety margin" => "Marge de securite",
+        "Safety margin" => "Marge de sécurité",
         "Sample" => "Exemple",
-        "Schedule / increase month" => "Mois d'echeance / d'augmentation",
+        "Schedule / increase month" => "Mois d'échéance / d'augmentation",
         "Select account" => "Choisir un compte",
         "Select budget" => "Choisir un budget",
-        "Settings" => "Parametres",
+        "Settings" => "Paramètres",
         "Short by" => "Manque de",
         "Show tutorial" => "Afficher le tutoriel",
-        "Show advanced bill fields" => "Afficher les details de la facture",
-        "Show paycheck transfer details" => "Afficher les details du virement de paie",
-        "Show transaction details" => "Afficher les details de la transaction",
+        "Show advanced bill fields" => "Afficher les détails de la facture",
+        "Show paycheck transfer details" => "Afficher les détails du virement de paie",
+        "Show transaction details" => "Afficher les détails de la transaction",
         "Skip introduction" => "Passer l'introduction",
         "Start manually" => "Commencer manuellement",
         "Start with YNAB" => "Commencer avec YNAB",
-        "Starting balance" => "Solde de depart",
-        "Step" => "Etape",
-        "Stored locally in this browser." => "Enregistre localement dans ce navigateur.",
+        "Starting balance" => "Solde de départ",
+        "Step" => "Étape",
+        "Stored locally in this browser." => "Enregistré localement dans ce navigateur.",
         "% per transfer" => "% par virement",
         " years" => " ans",
-        "Token saved" => "Jeton enregistre",
+        "Token saved" => "Jeton enregistré",
         "Today" => "Aujourd'hui",
         "Tomorrow" => "Demain",
-        "to stay afloat" => "pour rester a flot",
+        "to stay afloat" => "pour rester à flot",
         "Transactions" => "Transactions",
         "transactions" => "transactions",
         "Transfers" => "Virements",
         "Trends" => "Tendances",
         "Twice monthly" => "Deux fois par mois",
         "Twice monthly paycheck transfers are scheduled on the 15th and 30th." => {
-            "Les virements de paie deux fois par mois sont planifies le 15 et le 30."
+            "Les virements de paie deux fois par mois sont planifiés le 15 et le 30."
         }
-        "Unassigned" => "Non assignee",
-        "Upcoming payments" => "Paiements a venir",
+        "Unassigned" => "Non assigné",
+        "Upcoming payments" => "Paiements à venir",
         "Use a personal access token to import the dedicated recurring-payment account." => {
-            "Utilisez un jeton d'acces personnel pour importer le compte dedie aux paiements recurrents."
+            "Utilisez un jeton d'accès personnel pour importer le compte dédié aux paiements récurrents."
         }
         "Used to warn when the recommended transfer would take too much of one paycheck." => {
-            "Utilise pour avertir lorsque le virement recommande prendrait trop d'une paie."
+            "Utilisé pour avertir lorsque le virement recommandé prendrait trop d'une paie."
         }
         "YNAB import" => "Import YNAB",
         "YNAB transaction summary" => "Sommaire des transactions YNAB",
-        "Very high transfer" => "Virement tres eleve",
+        "Very high transfer" => "Virement très élevé",
         "Weekly" => "Hebdomadaire",
         "Welcome to Payflow Forecast" => "Bienvenue dans Payflow Forecast",
         "Yearly" => "Annuel",
         "above" => "au-dessus de la",
-        "after payment" => "apres paiement",
+        "after payment" => "après paiement",
         "average" => "moyenne",
         "below" => "sous la",
         "This short introduction explains the app and the two normal ways to start: import from YNAB, or enter bills and paycheck transfers manually." => {
-            "Cette courte introduction explique l'application et les deux facons de commencer: importer depuis YNAB, ou saisir les factures et virements de paie manuellement."
+            "Cette courte introduction explique l'application et les deux façons de commencer : importer depuis YNAB, ou saisir les factures et virements de paie manuellement."
         }
         "Assign imported transactions to bills, leave them unassigned, mark them non-recurring, or create a bill from the dropdown." => {
-            "Assignez les transactions importees aux factures, laissez-les non assignees, marquez-les non recurrentes ou creez une facture depuis la liste."
+            "Assignez les transactions importées aux factures, laissez-les non assignées, marquez-les non récurrentes ou créez une facture depuis la liste."
         }
         "The dashboard shows whether the recurring-payment account can stay above your minimum cash buffer. The chart combines real history with the five-year forecast so low points stand out visually." => {
-            "Le tableau de bord montre si le compte de paiements recurrents peut rester au-dessus du coussin minimal. Le graphique combine l'historique reel avec la prevision sur cinq ans pour faire ressortir les creux."
+            "Le tableau de bord montre si le compte de paiements récurrents peut rester au-dessus du coussin minimal. Le graphique combine l'historique réel avec la prévision sur cinq ans pour faire ressortir les creux."
         }
         "The Bills page is where recurring outflows and Paycheck Transfers live. Review the detected list after import, or create rows here when entering the plan yourself." => {
-            "La page Factures contient les sorties recurrentes et les virements de paie. Revisez la liste detectee apres l'import, ou creez des lignes ici pour une saisie manuelle."
+            "La page Factures contient les sorties récurrentes et les virements de paie. Révisez la liste détectée après l'import, ou créez des lignes ici pour une saisie manuelle."
         }
         "The Transactions page lets you review imported activity, assign a transaction to a bill, mark it non-recurring, or create a bill from a transaction when the detector missed something." => {
-            "La page Transactions permet de reviser l'activite importee, d'assigner une transaction a une facture, de la marquer non recurrente, ou de creer une facture lorsqu'une detection manque quelque chose."
+            "La page Transactions permet de réviser l'activité importée, d'assigner une transaction à une facture, de la marquer non récurrente, ou de créer une facture lorsqu'une détection manque quelque chose."
         }
         "Trends helps compare historical bill changes against the app forecast, especially when yearly renewals or price increases start to drift from expectation." => {
-            "Tendances aide a comparer les changements historiques des factures avec la prevision, surtout lorsque les renouvellements annuels ou les hausses s'ecartent des attentes."
+            "Tendances aide à comparer les changements historiques des factures avec la prévision, surtout lorsque les renouvellements annuels ou les hausses s'écartent des attentes."
         }
         "Settings controls the starting balance, minimum buffer, safety margin, paycheck amount, data reset, and YNAB connection." => {
-            "Les parametres controlent le solde de depart, le coussin minimal, la marge de securite, le montant de la paie, les donnees et la connexion YNAB."
+            "Les paramètres contrôlent le solde de départ, le coussin minimal, la marge de sécurité, le montant de la paie, les données et la connexion YNAB."
         }
         "To import from YNAB, paste your personal access token in Settings, load accounts, choose the budget and target account, then import. After import, review Bills and Transactions." => {
-            "Pour importer depuis YNAB, collez votre jeton dans Parametres, chargez les comptes, choisissez le budget et le compte cible, puis importez. Ensuite, revisez Factures et Transactions."
+            "Pour importer depuis YNAB, collez votre jeton dans Paramètres, chargez les comptes, choisissez le budget et le compte cible, puis importez. Ensuite, révisez Factures et Transactions."
         }
         "To start without YNAB, open Bills, add recurring bills and Paycheck Transfers, then confirm Settings. The dashboard will forecast from those entries." => {
-            "Pour commencer sans YNAB, ouvrez Factures, ajoutez les factures recurrentes et les virements de paie, puis confirmez les Parametres. Le tableau de bord prevoira a partir de ces entrees."
+            "Pour commencer sans YNAB, ouvrez Factures, ajoutez les factures récurrentes et les virements de paie, puis confirmez les Paramètres. Le tableau de bord prévoira à partir de ces entrées."
         }
         "Existing users" => "Utilisateurs existants",
-        "What to watch" => "A surveiller",
-        "Most important review" => "Revision la plus importante",
+        "What to watch" => "À surveiller",
+        "Most important review" => "Révision la plus importante",
         "Correction flow" => "Flux de correction",
-        "Use later" => "A utiliser plus tard",
-        "Do this early" => "A faire tot",
-        "Recommended path" => "Parcours recommande",
+        "Use later" => "À utiliser plus tard",
+        "Do this early" => "À faire tôt",
+        "Recommended path" => "Parcours recommandé",
         "No import needed" => "Aucun import requis",
         "Use Skip introduction if you already know the app. You can reopen this tutorial from Settings." => {
-            "Utilisez Passer l'introduction si vous connaissez deja l'application. Vous pourrez rouvrir ce tutoriel dans Parametres."
+            "Utilisez Passer l'introduction si vous connaissez déjà l'application. Vous pourrez rouvrir ce tutoriel dans Paramètres."
         }
-        "Lowest projected balance and recommended transfer are the key numbers." => "Le solde projete le plus bas et le virement recommande sont les chiffres cles.",
+        "Lowest projected balance and recommended transfer are the key numbers." => "Le solde projeté le plus bas et le virement recommandé sont les chiffres clés.",
         "Every recurring payment should have a clean bill row with amount, next due date, and frequency." => {
-            "Chaque paiement recurrent devrait avoir une ligne de facture claire avec montant, prochaine echeance et frequence."
+            "Chaque paiement récurrent devrait avoir une ligne de facture claire avec montant, prochaine échéance et fréquence."
         }
         "The Bills dropdown is the source of truth for whether a transaction belongs to a recurring bill." => {
-            "La liste deroulante Factures est la reference pour savoir si une transaction appartient a une facture recurrente."
+            "La liste déroulante Factures est la référence pour savoir si une transaction appartient à une facture récurrente."
         }
-        "This becomes more useful once you have imported or entered enough history." => "Cela devient plus utile apres avoir importe ou saisi assez d'historique.",
-        "Set the starting balance and minimum buffer before trusting the forecast." => "Reglez le solde de depart et le coussin minimal avant de vous fier a la prevision.",
+        "This becomes more useful once you have imported or entered enough history." => "Cela devient plus utile après avoir importé ou saisi assez d'historique.",
+        "Set the starting balance and minimum buffer before trusting the forecast." => "Réglez le solde de départ et le coussin minimal avant de vous fier à la prévision.",
         "The token stays in this browser's local storage. Review the imported bills before relying on the forecast." => {
-            "Le jeton reste dans le stockage local de ce navigateur. Revisez les factures importees avant de vous fier a la prevision."
+            "Le jeton reste dans le stockage local de ce navigateur. Révisez les factures importées avant de vous fier à la prévision."
         }
         "Manual setup is enough for forecasting, but you will not get transaction history until you import." => {
-            "La configuration manuelle suffit pour prevoir, mais l'historique des transactions exige un import."
+            "La configuration manuelle suffit pour prévoir, mais l'historique des transactions exige un import."
         }
         _ => key,
     }
