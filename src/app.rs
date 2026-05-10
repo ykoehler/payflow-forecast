@@ -3,6 +3,8 @@ use leptos::prelude::*;
 use serde::Deserialize;
 #[cfg(test)]
 use serde::Deserialize;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsCast;
 
 use crate::forecast::{
     days_in_month, historical_increase_summary, month_label, optimize_transfer, required_floor,
@@ -157,7 +159,7 @@ pub fn App() -> impl IntoView {
                 <InstallAppBanner />
 
                 {move || match active_view.get() {
-                    ViewName::Dashboard => view! { <Dashboard state forecast transfer /> }.into_any(),
+                    ViewName::Dashboard => view! { <Dashboard state forecast transfer active_view /> }.into_any(),
                     ViewName::Bills => view! { <BillsView state /> }.into_any(),
                     ViewName::Transactions => view! { <TransactionsView state /> }.into_any(),
                     ViewName::Trends => view! { <TrendsView state /> }.into_any(),
@@ -315,12 +317,13 @@ fn Dashboard(
     state: RwSignal<PlannerState>,
     forecast: Memo<Forecast>,
     transfer: Memo<f64>,
+    active_view: RwSignal<ViewName>,
 ) -> impl IntoView {
     view! {
         <section class="view active">
             <Show
                 when=move || !state.get().paychecks.is_empty()
-                fallback=move || view! { <DashboardPaycheckSetup state /> }
+                fallback=move || view! { <DashboardPaycheckSetup state active_view /> }
             >
                 <div class="metrics-grid">
                     <Metric
@@ -390,14 +393,21 @@ fn Dashboard(
 }
 
 #[component]
-fn DashboardPaycheckSetup(state: RwSignal<PlannerState>) -> impl IntoView {
+fn DashboardPaycheckSetup(
+    state: RwSignal<PlannerState>,
+    active_view: RwSignal<ViewName>,
+) -> impl IntoView {
     view! {
         <section class="setup-panel">
             <div>
                 <h3>{move || t("Add a paycheck transfer to forecast")}</h3>
                 <p>{move || t("Payflow needs at least one paycheck transfer before it can estimate funding dates, recommended transfers, and projected balances.")}</p>
             </div>
-            <button class="primary-button" type="button" on:click=move |_| add_paycheck(state)>
+            <button class="primary-button" type="button" on:click=move |_| {
+                add_paycheck(state);
+                active_view.set(ViewName::Bills);
+                scroll_paycheck_transfers_into_view();
+            }>
                 {move || t("Add Paycheck")}
             </button>
         </section>
@@ -450,7 +460,11 @@ fn BillsView(state: RwSignal<PlannerState>) -> impl IntoView {
                     </tbody>
                 </table>
             </div>
-            <div class="section-heading subsection-heading">
+            <div
+                id="paycheck-transfers-section"
+                class="section-heading subsection-heading"
+                data-testid="paycheck-transfers-section"
+            >
                 <div>
                     <h3>{move || t("Paycheck Transfers")}</h3>
                     <p>{move || t("Add or review recurring incoming transfers for this account.")}</p>
@@ -2796,6 +2810,29 @@ fn add_paycheck(state: RwSignal<PlannerState>) {
         });
     });
 }
+
+#[cfg(target_arch = "wasm32")]
+fn scroll_paycheck_transfers_into_view() {
+    let Some(window) = web_sys::window() else {
+        return;
+    };
+
+    let callback = wasm_bindgen::closure::Closure::<dyn FnMut()>::wrap(Box::new(move || {
+        let Some(document) = web_sys::window().and_then(|window| window.document()) else {
+            return;
+        };
+        let Some(element) = document.get_element_by_id("paycheck-transfers-section") else {
+            return;
+        };
+        element.scroll_into_view();
+    }));
+
+    let _ = window.request_animation_frame(callback.as_ref().unchecked_ref());
+    callback.forget();
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn scroll_paycheck_transfers_into_view() {}
 
 fn next_thursday_after(mut date: Date) -> Date {
     loop {

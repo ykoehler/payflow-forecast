@@ -536,6 +536,7 @@ html[data-install-available="true"] .mobile-install-card {
   margin-top: 22px;
   padding-top: 16px;
   border-top: 1px solid var(--line);
+  scroll-margin-top: 18px;
 }
 
 .section-heading > div,
