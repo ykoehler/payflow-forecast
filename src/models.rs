@@ -169,7 +169,7 @@ impl Default for Settings {
 }
 
 fn default_paycheck_amount() -> f64 {
-    2600.0
+    0.0
 }
 
 impl Default for YnabSettings {
