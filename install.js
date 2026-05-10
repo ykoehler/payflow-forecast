@@ -13,6 +13,12 @@
     navigator.platform === "MacIntel" && Number(navigator.maxTouchPoints || 0) > 1;
   const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) || isiPadOS;
 
+  if (isIos) {
+    root.setAttribute("data-ios-device", "true");
+  } else {
+    root.removeAttribute("data-ios-device");
+  }
+
   const installHidden = () => {
     try {
       return window.localStorage.getItem(INSTALL_HIDDEN_KEY) === "true";

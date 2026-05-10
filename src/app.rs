@@ -243,7 +243,8 @@ fn TabButton(view: ViewName, active_view: RwSignal<ViewName>) -> impl IntoView {
             on:click=move |_| active_view.set(view)
         >
             <span class="tab-icon" aria-hidden="true">{view.icon()}</span>
-            <span class="tab-label">{move || view.label(current_language())}</span>
+            <span class="tab-label tab-label-full">{move || view.label(current_language())}</span>
+            <span class="tab-label tab-label-short">{move || view.short_label(current_language())}</span>
         </button>
     }
 }
@@ -2187,6 +2188,19 @@ impl ViewName {
             ViewName::Settings => "⚙",
         }
     }
+
+    fn short_label(self, language: Language) -> &'static str {
+        tr(
+            language,
+            match self {
+                ViewName::Dashboard => "Home",
+                ViewName::Bills => "Bills",
+                ViewName::Transactions => "Txns",
+                ViewName::Trends => "Trends",
+                ViewName::Settings => "Settings",
+            },
+        )
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -2406,6 +2420,7 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "Hide paycheck transfer details" => "Masquer les détails du virement de paie",
         "Hide transaction details" => "Masquer les détails de la transaction",
         "Historical average" => "Moyenne historique",
+        "Home" => "Accueil",
         "Import from YNAB" => "Importer depuis YNAB",
         "Importing..." => "Importation...",
         "Imported" => "Importées",
@@ -2496,6 +2511,7 @@ fn tr(language: Language, key: &'static str) -> &'static str {
         "transactions" => "transactions",
         "Transfers" => "Virements",
         "Trends" => "Tendances",
+        "Txns" => "Txns",
         "Twice monthly" => "Deux fois par mois",
         "Twice monthly paycheck transfers are scheduled on the 15th and 30th." => {
             "Les virements de paie deux fois par mois sont planifiés le 15 et le 30."
