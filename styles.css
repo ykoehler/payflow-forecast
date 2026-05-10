@@ -57,6 +57,7 @@ button {
   padding: 24px;
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
   min-width: 0;
 }
 
@@ -1252,28 +1253,23 @@ dialog menu {
 
 @media (max-width: 980px) {
   .app-shell {
-    grid-template-columns: 1fr;
+    grid-template-columns: 220px minmax(0, 1fr);
   }
 
   .app-shell.sidebar-collapsed {
-    grid-template-columns: 1fr;
+    grid-template-columns: 76px minmax(0, 1fr);
   }
 
   .sidebar {
-    position: static;
-  }
-
-  .nav-tabs {
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    padding: 18px 14px;
   }
 
   .tab-button {
-    justify-content: center;
-    text-align: center;
+    padding-inline: 10px;
   }
 
   .sidebar-toggle {
-    margin-top: 18px;
+    margin-top: auto;
   }
 
   .metrics-grid,
@@ -1299,8 +1295,19 @@ dialog menu {
 }
 
 @media (max-width: 680px) {
-  .content,
+  .app-shell {
+    grid-template-columns: 172px minmax(0, 1fr);
+  }
+
+  .app-shell.sidebar-collapsed {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
   .sidebar {
+    padding: 12px 10px;
+  }
+
+  .content {
     padding: 18px;
   }
 
@@ -1322,8 +1329,7 @@ dialog menu {
   .settings-grid,
   .insight-grid,
   .transaction-grid,
-  .inline-fields,
-  .nav-tabs {
+  .inline-fields {
     grid-template-columns: 1fr;
   }
 

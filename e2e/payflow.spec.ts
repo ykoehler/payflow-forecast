@@ -392,6 +392,37 @@ test("keeps transaction layout scrollable on small screens without page overflow
   await expectNoButtonTextOverflow(page);
 });
 
+test("collapses the left navigation into an icon rail on narrow screens", async ({ page }) => {
+  await page.setViewportSize({ width: 720, height: 844 });
+  await openApp(page);
+
+  const sidebar = page.locator(".sidebar");
+  const content = page.locator(".content");
+  const dashboardLabel = page.locator(".tab-button", { hasText: "Dashboard" }).locator(".tab-label");
+
+  const expanded = await sidebar.boundingBox();
+  const expandedContent = await content.boundingBox();
+  expect(expanded?.width).toBeGreaterThan(190);
+  await expect(dashboardLabel).toBeVisible();
+
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await expect
+    .poll(async () => (await sidebar.boundingBox())?.width || 0)
+    .toBeLessThan(90);
+  const collapsedContent = await content.boundingBox();
+
+  expect((collapsedContent?.width || 0) - (expandedContent?.width || 0)).toBeGreaterThan(100);
+  await expect(dashboardLabel).toBeHidden();
+  await expect(page.getByRole("button", { name: "Dashboard" })).toBeVisible();
+  await expectNoDocumentHorizontalOverflow(page);
+
+  await page.getByRole("button", { name: "Expand sidebar" }).click();
+  await expect
+    .poll(async () => (await sidebar.boundingBox())?.width || 0)
+    .toBeGreaterThan(190);
+  await expect(dashboardLabel).toBeVisible();
+});
+
 test("renders chart lines, activity bars, low-point marker, and visual baseline", async ({ page }) => {
   await seedPlannerState(
     page,
