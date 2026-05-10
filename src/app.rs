@@ -4,7 +4,7 @@ use serde::Deserialize;
 #[cfg(test)]
 use serde::Deserialize;
 #[cfg(target_arch = "wasm32")]
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{prelude::wasm_bindgen, JsCast};
 
 use crate::forecast::{
     days_in_month, historical_increase_summary, month_label, optimize_transfer, required_floor,
@@ -26,6 +26,37 @@ const BILL_SELECT_UNASSIGNED: &str = "__unassigned__";
 const BILL_SELECT_NON_RECURRING: &str = "__non_recurring__";
 const BILL_SELECT_CREATE: &str = "__create_bill__";
 const PAYCHECK_SELECT_PREFIX: &str = "paycheck:";
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(inline_js = r#"
+export function focusAdjacentInlineDisplay(reverse) {
+  const active = document.activeElement;
+  const row = active && active.closest("tr");
+  const cell = active && active.closest("td");
+  if (!row || !cell) return;
+
+  const cells = Array.from(row.cells);
+  const currentIndex = cells.indexOf(cell);
+  const controls = Array.from(row.querySelectorAll(".inline-display"))
+    .filter((control) => !control.disabled);
+  const candidates = controls.filter((control) => {
+    const controlCell = control.closest("td");
+    const index = cells.indexOf(controlCell);
+    return reverse ? index < currentIndex : index > currentIndex;
+  });
+  const target = reverse ? candidates[candidates.length - 1] : candidates[0];
+  if (target) {
+    window.requestAnimationFrame(() => target.focus());
+  }
+}
+"#)]
+extern "C" {
+    #[wasm_bindgen(js_name = focusAdjacentInlineDisplay)]
+    fn focus_adjacent_inline_display(reverse: bool);
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn focus_adjacent_inline_display(_reverse: bool) {}
 
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -739,18 +770,39 @@ fn InlineTextCell(
 
     view! {
         {move || if editing.get() {
+            let input_ref = NodeRef::<leptos::html::Input>::new();
+            input_ref.on_load(|input| {
+                let _ = input.focus();
+                let _ = input.select();
+            });
             view! {
                 <input
                     class="inline-edit"
                     autofocus=true
+                    node_ref=input_ref
                     prop:value=value
                     on:input=move |event| on_input(event_target_value(&event))
+                    on:keydown=move |event| {
+                        if event.key() == "Enter" || event.key() == "Tab" {
+                            event.prevent_default();
+                            focus_adjacent_inline_display(event.shift_key());
+                            editing.set(false);
+                        } else if event.key() == "Escape" {
+                            event.prevent_default();
+                            editing.set(false);
+                        }
+                    }
                     on:blur=move |_| editing.set(false)
                 />
             }.into_any()
         } else {
             view! {
-                <button class="inline-display" type="button" on:click=move |_| editing.set(true)>
+                <button
+                    class="inline-display"
+                    type="button"
+                    on:focus=move |_| editing.set(true)
+                    on:click=move |_| editing.set(true)
+                >
                     {move || {
                         let value = value();
                         if value.trim().is_empty() { t("Click to edit").to_string() } else { value }
@@ -777,16 +829,23 @@ fn InlineMoneyCell(
 
     view! {
         {move || if editing.get() {
+            let input_ref = NodeRef::<leptos::html::Input>::new();
+            input_ref.on_load(|input| {
+                let _ = input.focus();
+                let _ = input.select();
+            });
             view! {
                 <input
                     class="inline-edit money-edit"
                     autofocus=true
+                    node_ref=input_ref
                     inputmode="decimal"
                     prop:value=move || raw_value.get()
                     on:input=move |event| raw_value.set(event_target_value(&event))
                     on:keydown=move |event| {
-                        if event.key() == "Enter" {
+                        if event.key() == "Enter" || event.key() == "Tab" {
                             event.prevent_default();
+                            focus_adjacent_inline_display(event.shift_key());
                             commit();
                         } else if event.key() == "Escape" {
                             event.prevent_default();
@@ -798,10 +857,18 @@ fn InlineMoneyCell(
             }.into_any()
         } else {
             view! {
-                <button class="inline-display money-display" type="button" on:click=move |_| {
-                    raw_value.set(money_input(value()));
-                    editing.set(true);
-                }>
+                <button
+                    class="inline-display money-display"
+                    type="button"
+                    on:focus=move |_| {
+                        raw_value.set(money_input(value()));
+                        editing.set(true);
+                    }
+                    on:click=move |_| {
+                        raw_value.set(money_input(value()));
+                        editing.set(true);
+                    }
+                >
                     {move || money(value())}
                 </button>
             }.into_any()
@@ -818,19 +885,39 @@ fn InlineDateCell(
 
     view! {
         {move || if editing.get() {
+            let input_ref = NodeRef::<leptos::html::Input>::new();
+            input_ref.on_load(|input| {
+                let _ = input.focus();
+            });
             view! {
                 <input
                     class="inline-edit date-edit"
                     type="date"
                     autofocus=true
+                    node_ref=input_ref
                     prop:value=move || date_input_value(value())
                     on:change=move |event| on_input(event_target_value(&event))
+                    on:keydown=move |event| {
+                        if event.key() == "Enter" || event.key() == "Tab" {
+                            event.prevent_default();
+                            focus_adjacent_inline_display(event.shift_key());
+                            editing.set(false);
+                        } else if event.key() == "Escape" {
+                            event.prevent_default();
+                            editing.set(false);
+                        }
+                    }
                     on:blur=move |_| editing.set(false)
                 />
             }.into_any()
         } else {
             view! {
-                <button class="inline-display date-display" type="button" on:click=move |_| editing.set(true)>
+                <button
+                    class="inline-display date-display"
+                    type="button"
+                    on:focus=move |_| editing.set(true)
+                    on:click=move |_| editing.set(true)
+                >
                     {move || relative_date_label(value(), Date::today())}
                 </button>
             }.into_any()
@@ -847,19 +934,39 @@ fn InlineIsoDateCell(
 
     view! {
         {move || if editing.get() {
+            let input_ref = NodeRef::<leptos::html::Input>::new();
+            input_ref.on_load(|input| {
+                let _ = input.focus();
+            });
             view! {
                 <input
                     class="inline-edit date-edit"
                     type="date"
                     autofocus=true
+                    node_ref=input_ref
                     prop:value=value
                     on:change=move |event| on_input(event_target_value(&event))
+                    on:keydown=move |event| {
+                        if event.key() == "Enter" || event.key() == "Tab" {
+                            event.prevent_default();
+                            focus_adjacent_inline_display(event.shift_key());
+                            editing.set(false);
+                        } else if event.key() == "Escape" {
+                            event.prevent_default();
+                            editing.set(false);
+                        }
+                    }
                     on:blur=move |_| editing.set(false)
                 />
             }.into_any()
         } else {
             view! {
-                <button class="inline-display date-display" type="button" on:click=move |_| editing.set(true)>
+                <button
+                    class="inline-display date-display"
+                    type="button"
+                    on:focus=move |_| editing.set(true)
+                    on:click=move |_| editing.set(true)
+                >
                     {move || value()}
                 </button>
             }.into_any()
@@ -883,16 +990,23 @@ fn InlineSignedMoneyCell(
 
     view! {
         {move || if editing.get() {
+            let input_ref = NodeRef::<leptos::html::Input>::new();
+            input_ref.on_load(|input| {
+                let _ = input.focus();
+                let _ = input.select();
+            });
             view! {
                 <input
                     class="inline-edit money-edit"
                     autofocus=true
+                    node_ref=input_ref
                     inputmode="decimal"
                     prop:value=move || raw_value.get()
                     on:input=move |event| raw_value.set(event_target_value(&event))
                     on:keydown=move |event| {
-                        if event.key() == "Enter" {
+                        if event.key() == "Enter" || event.key() == "Tab" {
                             event.prevent_default();
+                            focus_adjacent_inline_display(event.shift_key());
                             commit();
                         } else if event.key() == "Escape" {
                             event.prevent_default();
@@ -913,6 +1027,10 @@ fn InlineSignedMoneyCell(
                         }
                     }
                     type="button"
+                    on:focus=move |_| {
+                        raw_value.set(money_input(value()));
+                        editing.set(true);
+                    }
                     on:click=move |_| {
                         raw_value.set(money_input(value()));
                         editing.set(true);
@@ -934,12 +1052,27 @@ fn InlineFrequencyCell(
 
     view! {
         {move || if editing.get() {
+            let select_ref = NodeRef::<leptos::html::Select>::new();
+            select_ref.on_load(|select| {
+                let _ = select.focus();
+            });
             view! {
                 <select
                     class="inline-edit compact-select"
                     autofocus=true
+                    node_ref=select_ref
                     prop:value=move || frequency_value(value())
                     on:change=move |event| on_input(parse_frequency(&event_target_value(&event)))
+                    on:keydown=move |event| {
+                        if event.key() == "Enter" || event.key() == "Tab" {
+                            event.prevent_default();
+                            focus_adjacent_inline_display(event.shift_key());
+                            editing.set(false);
+                        } else if event.key() == "Escape" {
+                            event.prevent_default();
+                            editing.set(false);
+                        }
+                    }
                     on:blur=move |_| editing.set(false)
                 >
                     {Frequency::ALL.into_iter().map(|frequency| view! {
@@ -949,7 +1082,12 @@ fn InlineFrequencyCell(
             }.into_any()
         } else {
             view! {
-                <button class="inline-display" type="button" on:click=move |_| editing.set(true)>
+                <button
+                    class="inline-display"
+                    type="button"
+                    on:focus=move |_| editing.set(true)
+                    on:click=move |_| editing.set(true)
+                >
                     {move || frequency_label(value())}
                 </button>
             }.into_any()
